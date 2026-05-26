@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+/* Custom Tailwind utilities for the lamp component */
+@layer utilities {
+  .bg-gradient-conic {
+    background-image: conic-gradient(var(--tw-gradient-stops));
+  }
+}
+
+/* ── Radial Orbital Timeline — cinematic neural effects ── */
+@layer components {
+  .orbital-timeline-section {
+    --orbital-cyan: rgba(34, 211, 238, 0.55);
+    --orbital-purple: rgba(168, 85, 247, 0.4);
+    min-height: 520px;
+  }
+
+  .orbital-ambient-glow {
+    background: radial-gradient(
+      circle,
+      rgba(34, 211, 238, 0.12) 0%,
+      rgba(99, 102, 241, 0.08) 35%,
+      rgba(168, 85, 247, 0.05) 55%,
+      transparent 72%
+    );
+    filter: blur(40px);
+  }
+
+  .orbital-glass-card {
+    backdrop-filter: blur(28px);
+    box-shadow:
+      0 8px 40px rgba(0, 0, 0, 0.45),
+      0 0 60px rgba(34, 211, 238, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .orbital-ring-outer {
+    box-shadow:
+      0 0 30px rgba(34, 211, 238, 0.06),
+      inset 0 0 20px rgba(34, 211, 238, 0.03);
+  }
+
+  .orbital-ring-inner {
+    animation: orbit-spin-reverse 24s linear infinite;
+  }
+
+  .orbital-pulse-ring {
+    animation: neural-pulse 2s ease-in-out infinite;
+    border: 1px solid var(--orbital-cyan);
+    border-radius: inherit;
+  }
+
+  .neural-icon-glow {
+    filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.7));
+  }
+
+  .connection-line-active {
+    stroke-dasharray: 4 3;
+    animation: connection-flow 1.5s linear infinite;
+  }
+}
+
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes orbit-spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes neural-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.3);
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0;
+    box-shadow: 0 0 24px rgba(34, 211, 238, 0.6);
+  }
+}
+
+@keyframes connection-flow {
+  0% { stroke-dashoffset: 0; opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { stroke-dashoffset: -14; opacity: 0.5; }
+}
+
+@keyframes glow-breathe {
+  0%, 100% { opacity: 0.35; filter: blur(32px); }
+  50% { opacity: 0.65; filter: blur(48px); }
+}
+
+@keyframes float-node {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbital-ring-inner,
+  .orbital-pulse-ring,
+  .connection-line-active,
+  .footer-orb-ring-outer,
+  .footer-orb-ring-inner {
+    animation: none !important;
+  }
+}
+
+/* ── Personal Landing / Neural Footer (BrainDoc theme) ── */
+@layer components {
+  .footer-neural-section {
+    background: transparent;
+  }
+
+  .footer-ambient-glow {
+    pointer-events: none;
+  }
+
+  .footer-glass-panel {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .footer-social-btn:hover {
+    box-shadow: 0 0 20px rgba(63, 114, 175, 0.3);
+    border-color: rgba(63, 114, 175, 0.45) !important;
+    background: rgba(63, 114, 175, 0.12) !important;
+  }
+
+  .footer-social-btn:hover svg {
+    color: #5a8fc4 !important;
+  }
+
+  .footer-input:focus {
+    border-color: rgba(63, 114, 175, 0.5) !important;
+    box-shadow: 0 0 20px rgba(63, 114, 175, 0.15);
+  }
+
+  .footer-input {
+    backdrop-filter: blur(8px);
+  }
+}
+
+@keyframes footer-orb-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
