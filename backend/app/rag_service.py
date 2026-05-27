@@ -127,7 +127,7 @@ def chunk_text(text: str, chunk_size: int = 400, overlap: int = 80) -> List[str]
     return clean if clean else chunks
 
 
-# ```python id="4z1g7m" 
+
 # ── Simple in-memory vector store (FAISS-free) ───────────────────────────────
 
 _vector_store = {}  # doc_id → (embeddings, chunks)
@@ -173,7 +173,7 @@ def search_vectors(doc_id: str, query: str, top_k: int = 5) -> List[Tuple[str, f
         (chunks[i], float(scores[i]))
         for i in top_indices
     ]
-```
+
 
 
 # ── FAISS ─────────────────────────────────────────────────────────────────────
