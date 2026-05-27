@@ -127,7 +127,7 @@ def chunk_text(text: str, chunk_size: int = 400, overlap: int = 80) -> List[str]
     return clean if clean else chunks
 
 
-```python id="4z1g7m"
+# ```python id="4z1g7m" 
 # ── Simple in-memory vector store (FAISS-free) ───────────────────────────────
 
 _vector_store = {}  # doc_id → (embeddings, chunks)
