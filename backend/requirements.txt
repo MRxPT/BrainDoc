@@ -7,10 +7,11 @@ python-jose[cryptography]==3.3.0
 bcrypt==4.2.1
 python-dotenv==1.0.1
 python-multipart==0.0.12
-pydantic[email]==2.10.3
-pydantic-settings==2.6.1
-pypdf==4.3.1
 
+pydantic[email]
+pydantic-settings
+
+pypdf==4.3.1
 sentence-transformers==2.7.0
 numpy==1.26.4
 openai==1.109.1
@@ -21,4 +22,7 @@ langchain-openai==0.3.16
 PyMuPDF==1.24.10
 Pillow==10.4.0
 pytesseract==0.3.13
+
+setuptools
+wheel
 
