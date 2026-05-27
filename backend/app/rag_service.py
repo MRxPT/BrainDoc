@@ -7,12 +7,12 @@ PDF → PyMuPDF text OR Tesseract OCR (300 DPI)
    OR Groq / Gemini / OpenAI if user configures a key
 """
 import io
-import pickle
+# import pickle
 import re
-from pathlib import Path
+# from pathlib import Path
 from typing import List, Tuple, Optional
 
-import faiss
+
 from app.config import get_settings
 
 settings = get_settings()
@@ -127,23 +127,72 @@ def chunk_text(text: str, chunk_size: int = 400, overlap: int = 80) -> List[str]
     return clean if clean else chunks
 
 
+```python id="4z1g7m"
+# ── Simple in-memory vector store (FAISS-free) ───────────────────────────────
+
+_vector_store = {}  # doc_id → (embeddings, chunks)
+
+
+def build_vector_index(doc_id: str, chunks: List[str]) -> int:
+    embedder = get_embedder()
+
+    vecs = embedder.encode(
+        chunks,
+        batch_size=32,
+        show_progress_bar=False,
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+    ).astype("float32")
+
+    _vector_store[doc_id] = (vecs, chunks)
+
+    return len(chunks)
+
+
+def search_vectors(doc_id: str, query: str, top_k: int = 5) -> List[Tuple[str, float]]:
+    import numpy as np
+
+    if doc_id not in _vector_store:
+        raise Exception("Session expired. Please upload the PDF again.")
+
+    vecs, chunks = _vector_store[doc_id]
+
+    embedder = get_embedder()
+
+    q_vec = embedder.encode(
+        [query],
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+    ).astype("float32")[0]
+
+    scores = np.dot(vecs, q_vec)
+
+    top_indices = np.argsort(scores)[::-1][:top_k]
+
+    return [
+        (chunks[i], float(scores[i]))
+        for i in top_indices
+    ]
+```
+
+
 # ── FAISS ─────────────────────────────────────────────────────────────────────
 
-def _idx_dir(doc_id: str) -> Path:
-    p = Path(settings.faiss_index_dir) / doc_id
-    p.mkdir(parents=True, exist_ok=True)
-    return p
+# def _idx_dir(doc_id: str) -> Path:
+#     p = Path(settings.faiss_index_dir) / doc_id
+#     p.mkdir(parents=True, exist_ok=True)
+#     return p
 
 
-def build_faiss_index(doc_id: str, chunks: List[str]) -> int:
+def build_vector_index(doc_id: str, chunks: List[str]) -> int:
     embedder = get_embedder()
     vecs = embedder.encode(
         chunks, batch_size=32, show_progress_bar=False,
         convert_to_numpy=True, normalize_embeddings=True,
     ).astype("float32")
 
-    index = faiss.IndexFlatIP(vecs.shape[1])
-    index.add(vecs)
+    # index = faiss.IndexFlatIP(vecs.shape[1])
+    # index.add(vecs)
 
     # Skip writing to disk for Ephemeral RAG
     # d = _idx_dir(doc_id)
@@ -156,7 +205,7 @@ def build_faiss_index(doc_id: str, chunks: List[str]) -> int:
     return len(chunks)
 
 
-def search_faiss(doc_id: str, query: str, top_k: int = 5) -> List[Tuple[str, float]]:
+def search_vectors(doc_id: str, query: str, top_k: int = 5) -> List[Tuple[str, float]]:
     # Use in-memory cache — avoids disk I/O on every query
     if doc_id not in _faiss_cache:
         d = _idx_dir(doc_id)
@@ -185,24 +234,24 @@ def search_faiss(doc_id: str, query: str, top_k: int = 5) -> List[Tuple[str, flo
 
 # ── Answer generation ─────────────────────────────────────────────────────────
 
-NO_ANSWER = "The uploaded PDF does not contain enough information to answer this."
+# NO_ANSWER = "The uploaded PDF does not contain enough information to answer this."
 
-SYSTEM_PROMPT = (
-    "You are an AI assistant. Answer the question using ONLY the document context provided. "
-    "If the answer is not in the context, say: "
-    "'The uploaded PDF does not contain enough information to answer this.' "
-    "The context may contain OCR noise — interpret it intelligently. "
-    "Give a clear, complete answer."
-)
+# SYSTEM_PROMPT = (
+#     "You are an AI assistant. Answer the question using ONLY the document context provided. "
+#     "If the answer is not in the context, say: "
+#     "'The uploaded PDF does not contain enough information to answer this.' "
+#     "The context may contain OCR noise — interpret it intelligently. "
+#     "Give a clear, complete answer."
+# )
 
 
-async def generate_answer(
-    question: str,
-    context_chunks: List[str],
-    chat_history: Optional[List[dict]] = None,
-    provider: str = "local",
-    api_key: str = "",
-) -> str:
+# async def generate_answer(
+#     question: str,
+#     context_chunks: List[str],
+#     chat_history: Optional[List[dict]] = None,
+#     provider: str = "local",
+#     api_key: str = "",
+# ) -> str:
     # ── Cloud LLMs ────────────────────────────────────────────────────────────
     if api_key and api_key != "local" and provider in ("groq", "openai", "gemini"):
         context = "\n\n---\n\n".join(context_chunks)
