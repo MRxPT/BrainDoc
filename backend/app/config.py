@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from typing import List
 
 
 class Settings(BaseSettings):
@@ -11,6 +12,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     upload_dir: str = "uploads"
     faiss_index_dir: str = "faiss_indexes"
+    # Production: set FRONTEND_URL to your Vercel/Netlify URL
+    frontend_url: str = ""
 
     class Config:
         env_file = ".env"

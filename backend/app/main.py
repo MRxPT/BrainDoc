@@ -11,6 +11,17 @@ from app.config import get_settings
 
 app_settings = get_settings()
 
+# Build allowed origins — always include localhost for dev,
+# plus any FRONTEND_URL set in production environment
+_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+]
+if app_settings.frontend_url:
+    _origins.append(app_settings.frontend_url)
+
 
 async def _warm_embedder():
     """Pre-load embeddings without blocking API startup (auth, login, etc.)."""
@@ -50,7 +61,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
