@@ -24,10 +24,17 @@ if app_settings.frontend_url:
 
 
 async def _warm_embedder():
-    """Pre-load embeddings without blocking API startup (auth, login, etc.)."""
+    """Pre-load embeddings without blocking API startup.
+    Skipped on Render free tier to avoid memory/timeout issues.
+    """
+    import os
+    # Skip pre-warming on Render (RENDER env var is set automatically)
+    if os.environ.get("RENDER"):
+        print("[Startup] Render detected — skipping pre-warm (lazy load on first request).")
+        return
+
     import asyncio
     from app.rag_service import get_embedder
-
     try:
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, get_embedder)
