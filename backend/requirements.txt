@@ -1,3 +1,4 @@
+# Core API
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 motor==3.6.0
@@ -8,15 +9,21 @@ python-dotenv==1.0.1
 python-multipart==0.0.12
 pydantic[email]==2.10.3
 pydantic-settings==2.6.1
-pypdf==4.3.1
-sentence-transformers==2.7.0
-faiss-cpu==1.10.0
-numpy==1.26.4
-openai==1.109.1
 aiofiles==24.1.0
-langchain==0.3.25
-langchain-openai==0.3.16
+httpx==0.28.1
+
+# PDF processing
+pypdf==4.3.1
 PyMuPDF==1.24.10
 Pillow==10.4.0
 pytesseract==0.3.13
-httpx==0.28.1
+
+# AI / ML — pinned to versions with Python 3.11 wheels
+numpy==1.26.4
+sentence-transformers==2.7.0
+faiss-cpu==1.10.0
+
+# LLM clients
+openai==1.109.1
+langchain==0.3.25
+langchain-openai==0.3.16

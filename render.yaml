@@ -3,9 +3,12 @@ services:
     name: braindoc-backend
     runtime: python
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
       - key: MONGO_URI
         sync: false
       - key: DB_NAME
@@ -19,12 +22,8 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: UPLOAD_DIR
-        value: uploads
+        value: /tmp/uploads
       - key: FAISS_INDEX_DIR
-        value: faiss_indexes
+        value: /tmp/faiss_indexes
       - key: FRONTEND_URL
         sync: false
-    disk:
-      name: braindoc-data
-      mountPath: /opt/render/project/src
-      sizeGB: 1

@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -11,8 +12,7 @@ from app.config import get_settings
 
 app_settings = get_settings()
 
-# Build allowed origins — always include localhost for dev,
-# plus any FRONTEND_URL set in production environment
+# Build allowed origins
 _origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -23,45 +23,39 @@ if app_settings.frontend_url:
     _origins.append(app_settings.frontend_url)
 
 
-async def _warm_embedder():
-    """Pre-load embeddings without blocking API startup.
-    Skipped on Render free tier to avoid memory/timeout issues.
-    """
-    import os
-    # Skip pre-warming on Render (RENDER env var is set automatically)
-    if os.environ.get("RENDER"):
-        print("[Startup] Render detected — skipping pre-warm (lazy load on first request).")
-        return
-
-    import asyncio
-    from app.rag_service import get_embedder
-    try:
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, get_embedder)
-        print("[Startup] Embedding model pre-warmed.")
-    except Exception as exc:
-        print(f"[Startup] Embedding pre-warm skipped: {exc}")
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    import asyncio
+    # Create storage directories
+    try:
+        Path(app_settings.upload_dir).mkdir(parents=True, exist_ok=True)
+        Path(app_settings.faiss_index_dir).mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        print(f"[Startup] Directory creation warning: {e}")
 
-    Path(app_settings.upload_dir).mkdir(parents=True, exist_ok=True)
-    Path(app_settings.faiss_index_dir).mkdir(parents=True, exist_ok=True)
+    # Connect to MongoDB (non-fatal if it fails)
     await connect_db()
 
-    warm_task = asyncio.create_task(_warm_embedder())
+    # Pre-warm embedding model only in local dev (not on Render free tier)
+    if not os.environ.get("RENDER"):
+        import asyncio
+        try:
+            from app.rag_service import get_embedder
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, get_embedder)
+            print("[Startup] Embedding model pre-warmed.")
+        except Exception as e:
+            print(f"[Startup] Embedding pre-warm skipped: {e}")
+    else:
+        print("[Startup] Render detected — embedding model will load on first use.")
 
-    yield
+    yield  # App is running
 
-    warm_task.cancel()
     await close_db()
 
 
 app = FastAPI(
-    title="AI Document Search API",
-    description="RAG Chatbot — FastAPI + LangChain + FAISS + OpenAI",
+    title="BrainDoc API",
+    description="AI-powered PDF document intelligence — RAG + semantic search",
     version="2.0.0",
     lifespan=lifespan,
 )
@@ -74,13 +68,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/api")
-app.include_router(users.router, prefix="/api")
-app.include_router(documents.router, prefix="/api")
-app.include_router(chat.router, prefix="/api")
+app.include_router(auth.router,            prefix="/api")
+app.include_router(users.router,           prefix="/api")
+app.include_router(documents.router,       prefix="/api")
+app.include_router(chat.router,            prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
 
 
 @app.get("/")
 async def root():
-    return {"message": "AI Document Search API is running", "docs": "/docs"}
+    return {"message": "BrainDoc API is running", "docs": "/docs"}
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint for Render."""
+    return {"status": "ok"}

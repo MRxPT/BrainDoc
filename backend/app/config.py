@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
-from typing import List
+import os
 
 
 class Settings(BaseSettings):
@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     openai_api_key: str = ""
-    upload_dir: str = "uploads"
-    faiss_index_dir: str = "faiss_indexes"
-    # Production: set FRONTEND_URL to your Vercel/Netlify URL
+    # Use /tmp on Render (ephemeral), local paths in dev
+    upload_dir: str = "/tmp/uploads" if os.environ.get("RENDER") else "uploads"
+    faiss_index_dir: str = "/tmp/faiss_indexes" if os.environ.get("RENDER") else "faiss_indexes"
     frontend_url: str = ""
 
     class Config:
