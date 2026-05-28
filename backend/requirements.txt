@@ -1,3 +1,5 @@
+--only-binary=:all:
+
 # Core API
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
@@ -14,12 +16,13 @@ httpx==0.28.1
 
 # PDF processing
 pypdf==4.3.1
-PyMuPDF==1.24.10
+PyMuPDF==1.24.9
 Pillow==10.4.0
 pytesseract==0.3.13
 
-# AI / ML
+# ML — pinned to Python 3.11 binary wheels (no compilation needed)
 numpy==1.26.4
+torch==2.2.2
 sentence-transformers==2.7.0
 
 # LLM clients
