@@ -18,10 +18,9 @@ PyMuPDF==1.24.10
 Pillow==10.4.0
 pytesseract==0.3.13
 
-# AI / ML — pinned to versions with Python 3.11 wheels
+# AI / ML
 numpy==1.26.4
 sentence-transformers==2.7.0
-faiss-cpu==1.10.0
 
 # LLM clients
 openai==1.109.1
