@@ -5,7 +5,7 @@ from bson import ObjectId
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import AskRequest, AskResponse, ChatSessionResponse, ChatMessage
-from app.rag_service import search_faiss, generate_answer
+from app.rag_service import search_vectors as search_faiss, generate_answer
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 

@@ -2,26 +2,36 @@
 RAG pipeline — fully local by default, optional cloud LLM upgrade.
 
 PDF → PyMuPDF text OR Tesseract OCR (300 DPI)
-→ sentence-aware chunks → all-MiniLM-L6-v2 embeddings → FAISS
+→ sentence-aware chunks → all-MiniLM-L6-v2 embeddings → in-memory numpy store
 → semantic search → smart extractive answer (local, no API key, instant)
    OR Groq / Gemini / OpenAI if user configures a key
 """
 import io
-# import pickle
 import re
-# from pathlib import Path
+from pathlib import Path
 from typing import List, Tuple, Optional
-
 
 from app.config import get_settings
 
 settings = get_settings()
 
+NO_ANSWER = "The uploaded PDF does not contain enough information to answer this."
+
+SYSTEM_PROMPT = (
+    "You are an AI assistant. Answer the question using ONLY the document context provided. "
+    "If the answer is not in the context, say: "
+    "'The uploaded PDF does not contain enough information to answer this.' "
+    "The context may contain OCR noise — interpret it intelligently. "
+    "Give a clear, complete answer."
+)
+
 # ── Lazy singletons ───────────────────────────────────────────────────────────
 _embedder = None
-_faiss_cache: dict = {}   # doc_id → (index, chunks) — stays in RAM
 _hf_model = None
 _hf_tokenizer = None
+
+# doc_id → (embeddings np.ndarray, chunks list[str])
+_vector_store: dict = {}
 
 
 def get_embedder():
@@ -78,7 +88,8 @@ def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
     for path in [
         r"C:\Program Files\Tesseract-OCR\tesseract.exe",
         r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-        "/usr/bin/tesseract", "/usr/local/bin/tesseract",
+        "/usr/bin/tesseract",
+        "/usr/local/bin/tesseract",
     ]:
         if Path(path).exists():
             pytesseract.pytesseract.tesseract_cmd = path
@@ -127,15 +138,11 @@ def chunk_text(text: str, chunk_size: int = 400, overlap: int = 80) -> List[str]
     return clean if clean else chunks
 
 
-
-# ── Simple in-memory vector store (FAISS-free) ───────────────────────────────
-
-_vector_store = {}  # doc_id → (embeddings, chunks)
-
+# ── In-memory vector store (numpy cosine similarity) ─────────────────────────
 
 def build_vector_index(doc_id: str, chunks: List[str]) -> int:
+    """Encode chunks and store embeddings in memory. Returns chunk count."""
     embedder = get_embedder()
-
     vecs = embedder.encode(
         chunks,
         batch_size=32,
@@ -145,18 +152,25 @@ def build_vector_index(doc_id: str, chunks: List[str]) -> int:
     ).astype("float32")
 
     _vector_store[doc_id] = (vecs, chunks)
-
+    print(f"[RAG] Indexed {len(chunks)} chunks for doc {doc_id}")
     return len(chunks)
 
 
+# Alias used by documents.py router
+build_faiss_index = build_vector_index
+
+
 def search_vectors(doc_id: str, query: str, top_k: int = 5) -> List[Tuple[str, float]]:
+    """Return top-k (chunk, score) pairs for the given query."""
     import numpy as np
 
     if doc_id not in _vector_store:
-        raise Exception("Session expired. Please upload the PDF again.")
+        raise Exception(
+            "Session expired. This PDF was processed temporarily in-memory "
+            "and is no longer available. Please upload the PDF again."
+        )
 
     vecs, chunks = _vector_store[doc_id]
-
     embedder = get_embedder()
 
     q_vec = embedder.encode(
@@ -166,92 +180,24 @@ def search_vectors(doc_id: str, query: str, top_k: int = 5) -> List[Tuple[str, f
     ).astype("float32")[0]
 
     scores = np.dot(vecs, q_vec)
-
     top_indices = np.argsort(scores)[::-1][:top_k]
 
-    return [
-        (chunks[i], float(scores[i]))
-        for i in top_indices
-    ]
+    return [(chunks[i], float(scores[i])) for i in top_indices]
 
 
-
-# ── FAISS ─────────────────────────────────────────────────────────────────────
-
-# def _idx_dir(doc_id: str) -> Path:
-#     p = Path(settings.faiss_index_dir) / doc_id
-#     p.mkdir(parents=True, exist_ok=True)
-#     return p
-
-
-def build_vector_index(doc_id: str, chunks: List[str]) -> int:
-    embedder = get_embedder()
-    vecs = embedder.encode(
-        chunks, batch_size=32, show_progress_bar=False,
-        convert_to_numpy=True, normalize_embeddings=True,
-    ).astype("float32")
-
-    # index = faiss.IndexFlatIP(vecs.shape[1])
-    # index.add(vecs)
-
-    # Skip writing to disk for Ephemeral RAG
-    # d = _idx_dir(doc_id)
-    # faiss.write_index(index, str(d / "index.faiss"))
-    # with open(d / "chunks.pkl", "wb") as f:
-    #     pickle.dump(chunks, f)
-
-    # Cache in memory immediately after building
-    _faiss_cache[doc_id] = (index, chunks)
-    return len(chunks)
-
-
-def search_vectors(doc_id: str, query: str, top_k: int = 5) -> List[Tuple[str, float]]:
-    # Use in-memory cache — avoids disk I/O on every query
-    if doc_id not in _faiss_cache:
-        d = _idx_dir(doc_id)
-        if not d.exists() or not (d / "index.faiss").exists():
-            raise Exception("Session expired. This PDF was processed temporarily in-memory and is no longer available.")
-        index = faiss.read_index(str(d / "index.faiss"))
-        with open(d / "chunks.pkl", "rb") as f:
-            chunks = pickle.load(f)
-        _faiss_cache[doc_id] = (index, chunks)
-
-    index, chunks = _faiss_cache[doc_id]
-
-    embedder = get_embedder()
-    q_vec = embedder.encode(
-        [query], convert_to_numpy=True, normalize_embeddings=True,
-    ).astype("float32")
-
-    k = min(top_k, len(chunks))
-    scores, indices = index.search(q_vec, k)
-    return [
-        (chunks[idx], float(score))
-        for score, idx in zip(scores[0], indices[0])
-        if idx >= 0
-    ]
+# Alias used by chat.py router
+search_faiss = search_vectors
 
 
 # ── Answer generation ─────────────────────────────────────────────────────────
 
-# NO_ANSWER = "The uploaded PDF does not contain enough information to answer this."
-
-# SYSTEM_PROMPT = (
-#     "You are an AI assistant. Answer the question using ONLY the document context provided. "
-#     "If the answer is not in the context, say: "
-#     "'The uploaded PDF does not contain enough information to answer this.' "
-#     "The context may contain OCR noise — interpret it intelligently. "
-#     "Give a clear, complete answer."
-# )
-
-
-# async def generate_answer(
-#     question: str,
-#     context_chunks: List[str],
-#     chat_history: Optional[List[dict]] = None,
-#     provider: str = "local",
-#     api_key: str = "",
-# ) -> str:
+async def generate_answer(
+    question: str,
+    context_chunks: List[str],
+    chat_history: Optional[List[dict]] = None,
+    provider: str = "local",
+    api_key: str = "",
+) -> str:
     # ── Cloud LLMs ────────────────────────────────────────────────────────────
     if api_key and api_key != "local" and provider in ("groq", "openai", "gemini"):
         context = "\n\n---\n\n".join(context_chunks)
@@ -302,17 +248,14 @@ def _hf_answer(
         return NO_ANSWER
 
     best_answer = ""
-    best_score  = 0
+    best_score = 0
 
     for chunk in clean_chunks[:3]:   # top 3 chunks only — keep it fast
-        # Split into sentences for targeted search
         sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', chunk) if len(s.strip()) > 15]
         if not sentences:
             continue
 
-        # Score each sentence with flan-t5 using a yes/no relevance check
-        # This is much faster than full generation per chunk
-        for sent in sentences[:8]:   # max 8 sentences per chunk
+        for sent in sentences[:8]:
             prompt = (
                 f"Does this sentence answer the question?\n"
                 f"Sentence: {sent}\n"
@@ -325,7 +268,6 @@ def _hf_answer(
             verdict = tokenizer.decode(out[0], skip_special_tokens=True).strip().lower()
 
             if "yes" in verdict:
-                # This sentence is relevant — score by length (more info = better)
                 score = len(sent)
                 if score > best_score:
                     best_score = score
@@ -334,7 +276,6 @@ def _hf_answer(
     if best_answer:
         return best_answer
 
-    # Fallback: use extractive method
     return _local_extractive_answer(question, context_chunks)
 
 
@@ -342,7 +283,6 @@ def _clean_ocr_text(text: str) -> str:
     """Remove OCR garbage characters and normalize whitespace."""
     import unicodedata
 
-    # Replace common OCR garbage with sensible equivalents
     replacements = {
         "¾": "", "¼": "", "½": "", "║": " ", "│": " ", "┐": "",
         "┘": "", "┌": "", "└": "", "─": "-", "═": "-", "□": "",
@@ -353,22 +293,18 @@ def _clean_ocr_text(text: str) -> str:
     for bad, good in replacements.items():
         text = text.replace(bad, good)
 
-    # Remove non-printable / non-ASCII control characters
     cleaned = []
     for ch in text:
         cat = unicodedata.category(ch)
-        # Keep: letters, numbers, punctuation, spaces
         if cat.startswith(("L", "N", "P", "Z")) or ch in " \n\t-.,;:!?()[]\"'":
             cleaned.append(ch)
         else:
             cleaned.append(" ")
     text = "".join(cleaned)
 
-    # Collapse multiple spaces / weird whitespace
     text = re.sub(r"[ \t]{2,}", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
 
-    # Remove lines that are mostly non-alphabetic (OCR noise lines)
     lines = []
     for line in text.split("\n"):
         line = line.strip()
@@ -384,7 +320,6 @@ def _format_answer(sentences: list, question: str) -> str:
     """Format extracted sentences into a clean, readable answer."""
     q_lower = question.lower()
 
-    # Detect if question wants a list
     list_triggers = (
         "list", "what are", "features", "types", "steps", "summarize",
         "summary", "key points", "main points", "advantages", "disadvantages",
@@ -392,26 +327,23 @@ def _format_answer(sentences: list, question: str) -> str:
     )
     wants_list = any(t in q_lower for t in list_triggers)
 
-    # Simple "what is X" / "define X" → short paragraph, max 2 sentences
     simple_triggers = ("what is", "what are", "define", "meaning of", "explain")
     is_simple = any(t in q_lower for t in simple_triggers) and not any(
         t in q_lower for t in ("list", "features", "types", "applications")
     )
 
     if is_simple:
-        # Return only the single best sentence
         best = sentences[0].strip().rstrip(".")
         return best + "." if best else NO_ANSWER
 
     if wants_list and len(sentences) > 1:
         bullets = []
-        for s in sentences[:5]:   # max 5 bullets
+        for s in sentences[:5]:
             s = s.strip().rstrip(".")
             if s:
                 bullets.append(f"• {s}.")
         return "\n".join(bullets)
 
-    # Default: clean paragraph, max 3 sentences
     para = " ".join(s.strip() for s in sentences[:3] if s.strip())
     return para if para else NO_ANSWER
 
@@ -428,7 +360,6 @@ def _local_extractive_answer(
     if not context_chunks:
         return NO_ANSWER
 
-    # Clean OCR noise from all chunks first
     clean_chunks = [_clean_ocr_text(c) for c in context_chunks]
     clean_chunks = [c for c in clean_chunks if len(c.strip()) > 30]
     if not clean_chunks:
@@ -448,7 +379,6 @@ def _local_extractive_answer(
     if not q_words:
         q_words = set(question.lower().split())
 
-    # Split cleaned chunks into sentences
     all_sentences = []
     for chunk in clean_chunks:
         for s in re.split(r"(?<=[.!?])\s+", chunk):
@@ -457,19 +387,16 @@ def _local_extractive_answer(
                 all_sentences.append(s)
 
     if not all_sentences:
-        # Fall back to first 3 sentences of top chunk
         first = clean_chunks[0]
         sents = re.split(r"(?<=[.!?])\s+", first)
         return _format_answer([s.strip() for s in sents[:3] if s.strip()], question) or NO_ANSWER
 
-    # Score sentences by keyword overlap + subject-word bonus
     subject = re.sub(r"^(what is|what are|define|explain|describe)\s+", "", question.lower()).strip()
     subject_words = set(subject.split()) - STOPWORDS
 
     def score(s: str) -> float:
         words = set(re.sub(r"[^\w\s]", "", s.lower()).split())
         overlap = len(q_words & words)
-        # Extra weight if sentence contains the subject directly
         subject_hit = len(subject_words & words) * 1.5
         length_bonus = min(len(words) / 25, 1.0) * 0.2
         return overlap + subject_hit + length_bonus
@@ -478,11 +405,9 @@ def _local_extractive_answer(
     top = [s for s in scored[:8] if score(s) > 0]
 
     if not top:
-        # No keyword match — return summary of top chunk
         sents = re.split(r"(?<=[.!?])\s+", clean_chunks[0])
         return _format_answer([s.strip() for s in sents[:3] if s.strip()], question) or NO_ANSWER
 
-    # Deduplicate similar sentences
     unique = [top[0]]
     for s in top[1:]:
         words_s = set(s.lower().split())
@@ -492,14 +417,15 @@ def _local_extractive_answer(
         )
         if not is_dup:
             unique.append(s)
-        if len(unique) >= 3:   # hard cap — never return more than 3 sentences
+        if len(unique) >= 3:
             break
 
     return _format_answer(unique, question) or NO_ANSWER
 
 
 async def _call_openai_compat(
-    messages: list, api_key: str,
+    messages: list,
+    api_key: str,
     base_url: str = "https://api.openai.com/v1",
     model: str = "gpt-3.5-turbo",
 ) -> str:
@@ -513,9 +439,7 @@ async def _call_openai_compat(
 
 async def _call_gemini(question: str, context: str, api_key: str) -> str:
     import httpx
-    prompt = (
-        f"{SYSTEM_PROMPT}\n\nDocument context:\n{context}\n\nQuestion: {question}"
-    )
+    prompt = f"{SYSTEM_PROMPT}\n\nDocument context:\n{context}\n\nQuestion: {question}"
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
         f"gemini-1.5-flash:generateContent?key={api_key}"

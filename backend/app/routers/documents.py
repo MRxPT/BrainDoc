@@ -11,7 +11,7 @@ from app.auth import get_current_user
 from app.database import get_db, client as mongo_client
 from app.models import DocumentResponse
 from app.config import get_settings
-from app.rag_service import extract_text_from_pdf_bytes, chunk_text, build_faiss_index
+from app.rag_service import extract_text_from_pdf_bytes, chunk_text, build_vector_index as build_faiss_index
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 settings = get_settings()
@@ -165,9 +165,9 @@ async def delete_document(
     await db["documents"].delete_one({"_id": ObjectId(doc_id)})
     await db["chat_sessions"].delete_many({"document_id": doc_id})
 
-    # Evict from in-memory FAISS cache
-    from app.rag_service import _faiss_cache
-    _faiss_cache.pop(doc_id, None)
+    # Evict from in-memory vector store
+    from app.rag_service import _vector_store
+    _vector_store.pop(doc_id, None)
 
 
 def _to_response(d: dict) -> DocumentResponse:
