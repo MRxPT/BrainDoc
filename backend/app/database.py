@@ -32,4 +32,6 @@ async def close_db():
 
 
 def get_db():
+    if db is None:
+        raise Exception("MongoDB not connected")
     return db

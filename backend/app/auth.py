@@ -37,4 +37,11 @@ async def get_current_user(
     # Temporarily bypass auth verification for the Ephemeral RAG setup
     # Since we are using Firebase, the frontend doesn't have the old JWT token.
     # In a production app, we would verify the Firebase ID token here.
-    return {"_id": "ephemeral_user", "email": "ephemeral@braindoc.com"}
+    from datetime import datetime, timezone
+
+return {
+    "_id": "ephemeral_user",
+    "email": "ephemeral@braindoc.com",
+    "username": "Ephemeral User",
+    "created_at": datetime.now(timezone.utc),
+}
