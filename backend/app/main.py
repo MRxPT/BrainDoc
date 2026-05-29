@@ -1,3 +1,4 @@
+
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,13 +13,15 @@ from app.config import get_settings
 
 app_settings = get_settings()
 
-# Build allowed origins
+# Allowed frontend origins
 _origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:5174",
     "http://localhost:5175",
+    "https://brain-doc.vercel.app",
 ]
+
 if app_settings.frontend_url:
     _origins.append(app_settings.frontend_url)
 
@@ -32,23 +35,28 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[Startup] Directory creation warning: {e}")
 
-    # Connect to MongoDB (non-fatal if it fails)
+    # Connect MongoDB
     await connect_db()
 
-    # Pre-warm embedding model only in local dev (not on Render free tier)
+    # Preload embedding model locally only
     if not os.environ.get("RENDER"):
         import asyncio
+
         try:
             from app.rag_service import get_embedder
+
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(None, get_embedder)
+
             print("[Startup] Embedding model pre-warmed.")
+
         except Exception as e:
             print(f"[Startup] Embedding pre-warm skipped: {e}")
+
     else:
         print("[Startup] Render detected — embedding model will load on first use.")
 
-    yield  # App is running
+    yield
 
     await close_db()
 
@@ -60,6 +68,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
@@ -68,19 +77,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router,            prefix="/api")
-app.include_router(users.router,           prefix="/api")
-app.include_router(documents.router,       prefix="/api")
-app.include_router(chat.router,            prefix="/api")
+# Routes
+app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(documents.router, prefix="/api")
+app.include_router(chat.router, prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
 
 
 @app.get("/")
 async def root():
-    return {"message": "BrainDoc API is running", "docs": "/docs"}
+    return {
+        "message": "BrainDoc API is running",
+        "docs": "/docs",
+    }
 
 
 @app.get("/health")
 async def health():
-    """Health check endpoint for Render."""
     return {"status": "ok"}
+
