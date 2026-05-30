@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://braindoc.onrender.com",
+  baseURL: "https://braindoc.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
