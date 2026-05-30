@@ -50,15 +50,50 @@ def create_access_token(
     )
 
 
+from fastapi import HTTPException, status
+from jose import JWTError
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db=Depends(get_db),
 ):
-    # Temporary auth bypass for Firebase setup
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
 
-    return {
-        "_id": "ephemeral_user",
-        "email": "ephemeral@braindoc.com",
-        "username": "Ephemeral User",
-        "created_at": datetime.now(timezone.utc),
-    }
+    token = credentials.credentials
+
+    try:
+        payload = jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=[settings.algorithm]
+        )
+
+        user_id = payload.get("sub")
+
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token",
+            )
+
+        user = await db["users"].find_one({
+            "_id": ObjectId(user_id)
+        })
+
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+            )
+
+        return user
+
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
