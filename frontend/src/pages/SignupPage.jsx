@@ -5,8 +5,6 @@ import { Visibility, VisibilityOff, ArrowForwardOutlined } from "@mui/icons-mate
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useAppTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
-import { updateProfile } from "firebase/auth";
-import { auth } from "../lib/firebase";
 
 // Reusable styled submit button - motion.div wraps a plain <button> so
 // form submission works correctly and click events are never clipped.
@@ -89,22 +87,13 @@ export default function SignupPage() {
     if (Object.keys(errs).length) { setFieldErrors(errs); return; }
     setLoading(true);
     try {
-      // 1. Create the user with Firebase Auth
-      await signupUser(form.email, form.password);
-      
-      // 2. Set the display name (username) in Firebase
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { displayName: form.username });
-      }
-
-      // 3. Navigate home
+      await signupUser(form.username, form.email, form.password);
       navigate("/");
     } catch (err) {
       console.error(err);
-      // Format Firebase error codes to user-friendly messages
-      let msg = "Signup failed. Please try again.";
-      if (err.code === "auth/email-already-in-use") msg = "This email is already in use.";
-      if (err.code === "auth/weak-password") msg = "Password is too weak.";
+      const msg =
+        err.response?.data?.detail ||
+        "Signup failed. Please try again.";
       setError(msg);
     } finally {
       setLoading(false);

@@ -76,10 +76,9 @@ export default function LoginPage() {
       navigate("/");
     } catch (err) {
       console.error(err);
-      let msg = "Login failed. Please try again.";
-      if (err.code === "auth/user-not-found") msg = "No user found with this email.";
-      if (err.code === "auth/wrong-password") msg = "Incorrect password.";
-      if (err.code === "auth/invalid-credential") msg = "Invalid email or password.";
+      const msg =
+        err.response?.data?.detail ||
+        "Invalid email or password. Please try again.";
       setError(msg);
     } finally {
       setLoading(false);

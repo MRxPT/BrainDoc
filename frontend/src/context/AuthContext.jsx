@@ -1,11 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { 
-  onAuthStateChanged, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut 
-} from "firebase/auth";
-import { auth } from "../lib/firebase";
+import api from "../api/axios";
 
 const AuthContext = createContext(null);
 
@@ -15,24 +9,31 @@ export function AuthProvider({ children }) {
 
   // Restore session on page load
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    const token = localStorage.getItem("token");
+    if (token) {
+      setUser({ authenticated: true });
+    }
+    setLoading(false);
   }, []);
 
-  const loginUser = (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password);
+  const loginUser = async (email, password) => {
+    const response = await api.post("/auth/login", { email, password });
+    localStorage.setItem("token", response.data.access_token);
+    setUser({ email, authenticated: true });
+    return response.data;
   };
 
-  const signupUser = (email, password) => {
-    return createUserWithEmailAndPassword(auth, email, password);
+  const signupUser = async (username, email, password) => {
+    await api.post("/auth/signup", { username, email, password });
+    const response = await api.post("/auth/login", { email, password });
+    localStorage.setItem("token", response.data.access_token);
+    setUser({ email, authenticated: true });
+    return response.data;
   };
 
   const logoutUser = () => {
-    return signOut(auth);
+    localStorage.removeItem("token");
+    setUser(null);
   };
 
   return (
