@@ -15,14 +15,8 @@ import { getAISettings, saveAISettings, deleteAISettings } from "../api/settings
 const PROVIDERS = [
   {
     id: "local", name: "Brain Core", badge: "NO KEY", color: "#22c55e",
-    model: "keyword-extractive", placeholder: "",
-    desc: "Fast offline semantic extraction engine. No model needed. Works offline. Best for simple questions on digital PDFs.",
-    url: null,
-  },
-  {
-    id: "huggingface", name: "Neuro Gen", badge: "NO KEY", color: "#22c55e",
-    model: "google/flan-t5-base", placeholder: "",
-    desc: "Advanced generative reasoning engine. Runs flan-t5-base locally. No API key. Better quality answers for complex questions.",
+    model: "fastembed-bge-small", placeholder: "",
+    desc: "Fast offline semantic search engine. ONNX-powered, no API key needed. Works instantly. Best for quick questions on digital PDFs.",
     url: null,
   },
   {
@@ -86,7 +80,7 @@ export default function SettingsPage() {
   // - Typed a new key
   // - Already has a key saved (can switch provider or re-save same)
   const hasExistingKey = current?.is_configured === true;
-  const noKeyProviders = ["local", "huggingface"];
+  const noKeyProviders = ["local"];
   const needsNewKey    = !noKeyProviders.includes(provider) && !hasExistingKey && !apiKey.trim();
   const canSave        = !needsNewKey;
 

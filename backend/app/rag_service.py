@@ -1,9 +1,10 @@
 """
-RAG pipeline — fully local by default, optional cloud LLM upgrade.
+RAG pipeline — lightweight, Render-compatible.
 
 PDF → PyMuPDF text OR Tesseract OCR (300 DPI)
-→ sentence-aware chunks → all-MiniLM-L6-v2 embeddings → in-memory numpy store
-→ semantic search → smart extractive answer (local, no API key, instant)
+→ sentence-aware chunks → fastembed ONNX embeddings (no torch/GPU needed)
+→ in-memory numpy cosine store → semantic search
+→ fast extractive answer (local, no API key)
    OR Groq / Gemini / OpenAI if user configures a key
 """
 import io
@@ -27,35 +28,20 @@ SYSTEM_PROMPT = (
 
 # ── Lazy singletons ───────────────────────────────────────────────────────────
 _embedder = None
-_hf_model = None
-_hf_tokenizer = None
 
-# doc_id → (embeddings np.ndarray, chunks list[str])
+# doc_id → (embeddings np.ndarray shape [N,384], chunks list[str])
 _vector_store: dict = {}
 
 
 def get_embedder():
+    """Load fastembed ONNX embedder — no torch, no GPU, ~150 MB."""
     global _embedder
     if _embedder is None:
-        from sentence_transformers import SentenceTransformer
-        print("[RAG] Loading embedding model...")
-        _embedder = SentenceTransformer("all-MiniLM-L6-v2")
+        from fastembed import TextEmbedding
+        print("[RAG] Loading fastembed ONNX embedding model...")
+        _embedder = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
         print("[RAG] Embedding model ready.")
     return _embedder
-
-
-def get_hf_model():
-    """Load flan-t5-base for local generative QA (no API key needed)."""
-    global _hf_model, _hf_tokenizer
-    if _hf_model is None:
-        from transformers import T5ForConditionalGeneration, T5Tokenizer
-        import warnings
-        warnings.filterwarnings("ignore")
-        print("[RAG] Loading HuggingFace flan-t5-base...")
-        _hf_tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-base", legacy=True)
-        _hf_model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-base")
-        print("[RAG] HuggingFace model ready.")
-    return _hf_model, _hf_tokenizer
 
 
 # ── PDF extraction ────────────────────────────────────────────────────────────
@@ -142,21 +128,24 @@ def chunk_text(text: str, chunk_size: int = 400, overlap: int = 80) -> List[str]
 
 def build_vector_index(doc_id: str, chunks: List[str]) -> int:
     """Encode chunks and store embeddings in memory. Returns chunk count."""
+    import numpy as np
+
     embedder = get_embedder()
-    vecs = embedder.encode(
-        chunks,
-        batch_size=32,
-        show_progress_bar=False,
-        convert_to_numpy=True,
-        normalize_embeddings=True,
-    ).astype("float32")
+    # fastembed returns a generator of numpy arrays
+    vecs = list(embedder.embed(chunks))
+    vecs = np.array(vecs, dtype="float32")
+
+    # Normalize for cosine similarity via dot product
+    norms = np.linalg.norm(vecs, axis=1, keepdims=True)
+    norms = np.where(norms == 0, 1, norms)
+    vecs = vecs / norms
 
     _vector_store[doc_id] = (vecs, chunks)
     print(f"[RAG] Indexed {len(chunks)} chunks for doc {doc_id}")
     return len(chunks)
 
 
-# Alias used by documents.py router
+# Alias for backwards compatibility with documents.py
 build_faiss_index = build_vector_index
 
 
@@ -173,11 +162,10 @@ def search_vectors(doc_id: str, query: str, top_k: int = 5) -> List[Tuple[str, f
     vecs, chunks = _vector_store[doc_id]
     embedder = get_embedder()
 
-    q_vec = embedder.encode(
-        [query],
-        convert_to_numpy=True,
-        normalize_embeddings=True,
-    ).astype("float32")[0]
+    q_vec = list(embedder.embed([query]))[0].astype("float32")
+    norm = float(np.linalg.norm(q_vec))
+    if norm > 0:
+        q_vec = q_vec / norm
 
     scores = np.dot(vecs, q_vec)
     top_indices = np.argsort(scores)[::-1][:top_k]
@@ -185,7 +173,7 @@ def search_vectors(doc_id: str, query: str, top_k: int = 5) -> List[Tuple[str, f
     return [(chunks[i], float(scores[i])) for i in top_indices]
 
 
-# Alias used by chat.py router
+# Alias for backwards compatibility with chat.py
 search_faiss = search_vectors
 
 
@@ -219,63 +207,7 @@ async def generate_answer(
         elif provider == "gemini":
             return await _call_gemini(question, context, api_key)
 
-    # ── HuggingFace local generative model (flan-t5-base) ────────────────────
-    if provider == "huggingface":
-        return _hf_answer(question, context_chunks, chat_history)
-
     # ── Default: fast extractive answer (no model needed) ────────────────────
-    return _local_extractive_answer(question, context_chunks)
-
-
-def _hf_answer(
-    question: str,
-    context_chunks: List[str],
-    chat_history: Optional[List[dict]] = None,
-) -> str:
-    """
-    HuggingFace local QA — two-stage pipeline:
-    1. Use flan-t5-base to identify the most relevant sentence per chunk
-    2. Expand short answers to full sentences from the source
-    Falls back to extractive if model gives nothing useful.
-    """
-    import torch
-
-    model, tokenizer = get_hf_model()
-
-    clean_chunks = [_clean_ocr_text(c) for c in context_chunks]
-    clean_chunks = [c for c in clean_chunks if len(c.strip()) > 20]
-    if not clean_chunks:
-        return NO_ANSWER
-
-    best_answer = ""
-    best_score = 0
-
-    for chunk in clean_chunks[:3]:   # top 3 chunks only — keep it fast
-        sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', chunk) if len(s.strip()) > 15]
-        if not sentences:
-            continue
-
-        for sent in sentences[:8]:
-            prompt = (
-                f"Does this sentence answer the question?\n"
-                f"Sentence: {sent}\n"
-                f"Question: {question}\n"
-                f"Answer yes or no:"
-            )
-            inputs = tokenizer(prompt, return_tensors="pt", max_length=256, truncation=True)
-            with torch.no_grad():
-                out = model.generate(**inputs, max_new_tokens=5)
-            verdict = tokenizer.decode(out[0], skip_special_tokens=True).strip().lower()
-
-            if "yes" in verdict:
-                score = len(sent)
-                if score > best_score:
-                    best_score = score
-                    best_answer = sent
-
-    if best_answer:
-        return best_answer
-
     return _local_extractive_answer(question, context_chunks)
 
 

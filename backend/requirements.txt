@@ -1,10 +1,8 @@
---only-binary=:all:
-
 # Core API
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
-motor==3.7.1
-pymongo==4.15.4
+motor==3.6.0
+pymongo==4.9.2
 python-jose[cryptography]==3.3.0
 bcrypt==4.2.1
 python-dotenv==1.0.1
@@ -16,16 +14,12 @@ httpx==0.28.1
 
 # PDF processing
 pypdf==4.3.1
-PyMuPDF==1.24.11
-Pillow==12.0.0
+PyMuPDF==1.24.9
+Pillow==10.4.0
 pytesseract==0.3.13
 
-# ML — pinned to Python 3.11 binary wheels (no compilation needed)
-numpy==1.26.4
-torch==2.2.2
-sentence-transformers==2.7.0
+# Lightweight embeddings (ONNX-based, no torch needed)
+fastembed==0.3.1
 
 # LLM clients
-openai==1.109.1
-langchain==0.3.25
-langchain-openai==0.3.16
+openai==1.59.3

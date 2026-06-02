@@ -2,9 +2,8 @@ services:
   - type: web
     name: braindoc-backend
     runtime: python
-    rootDir: backend
-    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: cd backend && pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
+    startCommand: cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
@@ -27,3 +26,5 @@ services:
         value: /tmp/faiss_indexes
       - key: FRONTEND_URL
         sync: false
+      - key: RENDER
+        value: "true"

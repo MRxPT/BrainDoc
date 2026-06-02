@@ -6,7 +6,7 @@ from app.database import get_db
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
 
-VALID_PROVIDERS = {"openai", "groq", "gemini", "local", "huggingface"}
+VALID_PROVIDERS = {"openai", "groq", "gemini", "local"}
 
 
 class AISettingsIn(BaseModel):
