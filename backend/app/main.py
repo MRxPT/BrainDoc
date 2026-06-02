@@ -1,4 +1,3 @@
-
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,18 +11,6 @@ from app.routers import settings as settings_router
 from app.config import get_settings
 
 app_settings = get_settings()
-
-# Allowed frontend origins
-_origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",
-    "http://localhost:5175",
-    "https://brain-doc.vercel.app",
-]
-
-if app_settings.frontend_url:
-    _origins.append(app_settings.frontend_url)
 
 
 @asynccontextmanager
@@ -71,7 +58,7 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -96,4 +83,3 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
