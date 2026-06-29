@@ -1,437 +1,407 @@
 import React, { useState, useEffect } from "react";
-import {
-  Box, TextField, Typography, Alert, CircularProgress,
-  InputAdornment, IconButton, Tooltip,
-} from "@mui/material";
+import { Box, TextField, Typography, Alert, CircularProgress, InputAdornment, IconButton, Tooltip } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircleOutlined, KeyOutlined, DeleteOutlined,
-  Visibility, VisibilityOff, OpenInNewOutlined, ArrowBackOutlined,
+  Visibility, VisibilityOff, OpenInNewOutlined,
+  PersonOutlined, AutoAwesomeOutlined, SettingsOutlined, ChatOutlined,
 } from "@mui/icons-material";
-import { useAppTheme } from "../context/ThemeContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getAISettings, saveAISettings, deleteAISettings } from "../api/settings";
+import { GlassCard, NeonBadge, SidebarNav, ToggleSwitch, SliderInput, AccentButton, AvatarCircle } from "../components/ui/design-system";
+import { useAuth } from "../context/AuthContext";
+
+const A = "#ff6a3d";
+
+const NAV_ITEMS = [
+  { id: "ai",          label: "AI Model",    icon: <AutoAwesomeOutlined sx={{ fontSize: 17 }} /> },
+  { id: "retrieval",   label: "Retrieval",   icon: <SettingsOutlined sx={{ fontSize: 17 }} /> },
+  { id: "workspace",   label: "Workspace",   icon: <ChatOutlined sx={{ fontSize: 17 }} /> },
+  { id: "appearance",  label: "Appearance",  icon: <PersonOutlined sx={{ fontSize: 17 }} /> },
+];
 
 const PROVIDERS = [
   {
-    id: "local", name: "Brain Core", badge: "NO KEY", color: "#22c55e",
+    id: "local", name: "Brain Core", badge: "NO KEY", badgeColor: "#22c55e",
     model: "fastembed-bge-small", placeholder: "",
-    desc: "Fast offline semantic search engine. ONNX-powered, no API key needed. Works instantly. Best for quick questions on digital PDFs.",
+    desc: "Fast offline semantic search. ONNX-powered, no API key needed.",
     url: null,
   },
   {
-    id: "groq", name: "Groq", badge: "FREE", color: "#3F72AF",
+    id: "groq", name: "Groq", badge: "FREE", badgeColor: A,
     model: "llama-3.3-70b-versatile", placeholder: "gsk_...",
-    desc: "Free tier. Best for scanned/handwritten PDFs. Highly recommended for best answer quality.",
+    desc: "Free tier. Best quality answers. Recommended for most users.",
     url: "https://console.groq.com/keys",
   },
   {
-    id: "gemini", name: "Google Gemini", badge: "FREE", color: "#3F72AF",
+    id: "gemini", name: "Google Gemini", badge: "FREE", badgeColor: A,
     model: "gemini-1.5-flash", placeholder: "AIza...",
-    desc: "Free tier. Great for complex documents and long-form answers.",
+    desc: "Free tier. Great for complex documents and long answers.",
     url: "https://aistudio.google.com/app/apikey",
   },
   {
-    id: "openai", name: "OpenAI GPT-3.5", badge: "PAID", color: "#f59e0b",
+    id: "openai", name: "OpenAI GPT-3.5", badge: "PAID", badgeColor: "#f59e0b",
     model: "gpt-3.5-turbo", placeholder: "sk-...",
     desc: "Requires a paid OpenAI account with credits.",
     url: "https://platform.openai.com/api-keys",
   },
 ];
 
-export default function SettingsPage() {
-  const navigate = useNavigate();
-  const { mode } = useAppTheme();
-  const isDark = mode === "dark";
-  const [current, setCurrent]     = useState(null);   // what's saved in DB
-  const [provider, setProvider]   = useState("groq"); // selected in UI
-  const [apiKey, setApiKey]       = useState("");
-  const [showKey, setShowKey]     = useState(false);
-  const [pageLoading, setPageLoading] = useState(true);
-  const [saving, setSaving]       = useState(false);
-  const [success, setSuccess]     = useState("");
-  const [error, setError]         = useState("");
+function SectionLabel({ children }) {
+  return (
+    <Typography sx={{
+      fontSize: "0.6rem", fontWeight: 800, letterSpacing: "0.14em",
+      color: "rgba(255,106,61,0.45)", textTransform: "uppercase", mb: 2,
+    }}>
+      {children}
+    </Typography>
+  );
+}
 
-  // Load current settings on mount
-  useEffect(() => {
-    getAISettings()
-      .then(({ data }) => {
-        setCurrent(data);
-        if (data.is_configured && data.provider) {
-          setProvider(data.provider);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setPageLoading(false));
-  }, []);
+function AISection({ current, setCurrent }) {
+  const [provider, setProvider] = useState(() => current?.is_configured ? current.provider : "groq");
+  const [apiKey, setApiKey]     = useState("");
+  const [showKey, setShowKey]   = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [success, setSuccess]   = useState("");
+  const [error, setError]       = useState("");
 
   const sel = PROVIDERS.find((p) => p.id === provider) || PROVIDERS[0];
-
-  // When user picks a provider, clear the key field and errors
-  const handleSelectProvider = (id) => {
-    setProvider(id);
-    setApiKey("");
-    setError("");
-    setSuccess("");
-  };
-
-  // Can save when:
-  // - Local AI (no key needed)
-  // - Typed a new key
-  // - Already has a key saved (can switch provider or re-save same)
-  const hasExistingKey = current?.is_configured === true;
-  const noKeyProviders = ["local"];
-  const needsNewKey    = !noKeyProviders.includes(provider) && !hasExistingKey && !apiKey.trim();
-  const canSave        = !needsNewKey;
+  const hasKey = current?.is_configured;
+  const noKey  = provider === "local";
+  const needsKey = !noKey && !hasKey && !apiKey.trim();
+  const canSave  = !needsKey;
 
   const handleSave = async () => {
-    if (needsNewKey) {
-      setError(`Please enter your ${sel.name} API key to continue.`);
-      return;
-    }
+    if (needsKey) { setError(`Please enter your ${sel.name} API key.`); return; }
     setSaving(true); setError(""); setSuccess("");
     try {
-      // Send provider + key (or null to keep existing key)
-      const payload = {
-        provider,
-        api_key: noKeyProviders.includes(provider) ? provider : (apiKey.trim() || null),
-      };
+      const payload = { provider, api_key: noKey ? provider : (apiKey.trim() || null) };
       const { data } = await saveAISettings(payload);
-      setCurrent(data);
-      setApiKey("");
+      setCurrent(data); setApiKey("");
       setSuccess(`${sel.name} is now active`);
-      // Don't auto-redirect  let user stay and change again if they want
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to save. Please try again.");
-    } finally {
-      setSaving(false);
-    }
+      setError(err.response?.data?.detail || "Failed to save.");
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
-    setSaving(true); setError(""); setSuccess("");
+    setSaving(true);
     try {
       await deleteAISettings();
       setCurrent({ is_configured: false, provider: "groq" });
-      setApiKey("");
       setSuccess("API key removed.");
-    } catch {
-      setError("Failed to remove key.");
-    } finally {
-      setSaving(false);
-    }
+    } catch { setError("Failed to remove key."); }
+    finally { setSaving(false); }
   };
 
-  if (pageLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center"
-        sx={{ height: "calc(100vh - 56px)", position: "relative", zIndex: 1 }}>
-        <CircularProgress sx={{ color: "#3F72AF" }} />
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ position: "relative", zIndex: 1, minHeight: "calc(100vh - 56px)", py: 6, px: 2 }}>
-      <Box sx={{ maxWidth: 640, mx: "auto" }}>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        >
-          {/*  Header  */}
-          <Box display="flex" alignItems="center" gap={1.5} mb={0.75}>
-            <button
-              onClick={() => navigate(-1)}
-              style={{
-                width: 32, height: 32, borderRadius: 8,
-                border: "1px solid rgba(63,114,175,0.18)",
-                background: "transparent", color: "rgba(63,114,175,0.6)",
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >
-              <ArrowBackOutlined style={{ fontSize: 15 }} />
-            </button>
-            <Typography variant="h4" fontWeight={800} sx={{ color: isDark ? "#F9F7F7" : "#112D4E" }}>AI Settings</Typography>
-          </Box>
-          <Typography sx={{ color: isDark ? "rgba(219,226,239,0.5)" : "rgba(17,45,78,0.5)", mb: 4, fontSize: "0.88rem", transition: "color 0.4s" }}>
-            Choose your AI provider and manage your API key. You can change this anytime.
-          </Typography>
+    <Box>
+      <SectionLabel>Step 1 — AI Provider</SectionLabel>
 
-          {/*  Active status banner  */}
-          <AnimatePresence>
-            {current?.is_configured && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              >
-                <Box sx={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  p: 2, mb: 3, borderRadius: "12px",
-                  background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.22)",
-                }}>
-                  <Box display="flex" alignItems="center" gap={1.5}>
-                    <CheckCircleOutlined sx={{ fontSize: 17, color: "#22c55e" }} />
-                    <Box>
-                      <Typography sx={{ fontSize: "0.85rem", fontWeight: 700, color: "#22c55e" }}>
-                        {PROVIDERS.find((p) => p.id === current.provider)?.name || current.provider} is active
-                      </Typography>
-                      {current.api_key_preview && (
-                        <Typography sx={{ fontSize: "0.7rem", color: "rgba(90,120,160,0.35)" }}>
-                          {current.api_key_preview}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-                  <Tooltip title="Remove API key">
-                    <Box
-                      onClick={handleDelete}
-                      sx={{ cursor: "pointer", color: "rgba(255,255,255,0.25)", "&:hover": { color: "#ef4444" }, display: "flex", transition: "color 0.15s" }}
-                    >
-                      <DeleteOutlined sx={{ fontSize: 16 }} />
-                    </Box>
-                  </Tooltip>
-                </Box>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {success && (
-            <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSuccess("")}>
-              {success}
-            </Alert>
-          )}
-          {error && (
-            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError("")}>
-              {error}
-            </Alert>
-          )}
-
-          {/*  Main card  NO overflow:hidden  */}
-          <Box sx={{
-            background: isDark ? "rgba(17,45,78,0.9)" : "rgba(249,247,247,0.97)",
-            backdropFilter: "blur(32px)",
-            border: "1px solid rgba(63,114,175,0.14)",
-            borderRadius: "20px",
-            p: { xs: 3, md: 4 },
-            position: "relative",
-            // overflow is intentionally NOT hidden  it blocks click events
-          }}>
-            {/* Top shimmer */}
+      {/* Active banner */}
+      <AnimatePresence>
+        {current?.is_configured && (
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             <Box sx={{
-              position: "absolute", top: 0, left: "8%", right: "8%", height: "1px",
-              background: "linear-gradient(90deg,transparent,rgba(63,114,175,0.4),transparent)",
-              pointerEvents: "none",
-            }} />
-
-            {/*  Step 1: Choose provider  */}
-            <Typography sx={{
-              fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.12em",
-              color: "rgba(63,114,175,0.45)", textTransform: "uppercase", mb: 2,
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              p: 2, mb: 2.5, borderRadius: "11px",
+              background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.14)",
             }}>
-              Step 1  Choose Provider
-            </Typography>
-
-            <Box display="flex" flexDirection="column" gap={1.25} mb={3.5}>
-              {PROVIDERS.map((p) => {
-                const isSelected = provider === p.id;
-                const isActive   = current?.is_configured && current?.provider === p.id;
-                return (
-                  // Plain <div>  no motion wrapper  so clicks always register
-                  <div
-                    key={p.id}
-                    onClick={() => handleSelectProvider(p.id)}
-                    style={{
-                      padding: "14px 16px",
-                      borderRadius: 12,
-                      cursor: "pointer",
-                      border: `1px solid ${isSelected ? "rgba(63,114,175,0.4)" : "rgba(63,114,175,0.1)"}`,
-                      background: isSelected ? "rgba(63,114,175,0.09)" : "rgba(63,114,175,0.02)",
-                      transition: "border-color 0.18s, background 0.18s",
-                      userSelect: "none",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = "rgba(63,114,175,0.25)";
-                        e.currentTarget.style.background  = "rgba(63,114,175,0.05)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = "rgba(63,114,175,0.1)";
-                        e.currentTarget.style.background  = "rgba(63,114,175,0.02)";
-                      }
-                    }}
-                  >
-                    <Box display="flex" alignItems="center" gap={1.5} mb={0.5}>
-                      {/* Selection dot */}
-                      <Box sx={{
-                        width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                        bgcolor: isSelected ? "#3F72AF" : (isDark ? "rgba(255,255,255,0.18)" : "rgba(17,45,78,0.18)"),
-                        boxShadow: isSelected ? "0 0 8px rgba(63,114,175,0.7)" : "none",
-                        transition: "all 0.18s",
-                      }} />
-                      <Typography sx={{ fontWeight: 700, fontSize: "0.88rem", color: isDark ? "#F9F7F7" : "#112D4E" }}>{p.name}</Typography>
-                      {/* Badge */}
-                      <Box sx={{
-                        px: 1, py: 0.15, borderRadius: "100px",
-                        background: `${p.color}16`, border: `1px solid ${p.color}30`,
-                        fontSize: "0.62rem", fontWeight: 800, color: p.color, letterSpacing: "0.06em",
-                      }}>
-                        {p.badge}
-                      </Box>
-                      {/* Active indicator */}
-                      {isActive && (
-                        <Box sx={{
-                          px: 1, py: 0.15, borderRadius: "100px",
-                          background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)",
-                          fontSize: "0.6rem", fontWeight: 800, color: "#22c55e", letterSpacing: "0.06em",
-                          ml: 0.5,
-                        }}>
-                          ACTIVE
-                        </Box>
-                      )}
-                      <Typography sx={{ fontSize: "0.68rem", color: isDark ? "rgba(90,120,160,0.35)" : "rgba(17,45,78,0.4)", ml: "auto" }}>
-                        {p.model}
-                      </Typography>
-                    </Box>
-                    <Typography sx={{ fontSize: "0.78rem", color: isDark ? "rgba(219,226,239,0.5)" : "rgba(17,45,78,0.55)", ml: 3 }}>
-                      {p.desc}
-                    </Typography>
-                  </div>
-                );
-              })}
-            </Box>
-
-            {/*  Step 2: API key  */}
-            <Typography sx={{
-              fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.12em",
-              color: "rgba(63,114,175,0.45)", textTransform: "uppercase", mb: 2,
-            }}>
-              Step 2 {" "}
-              {noKeyProviders.includes(provider)
-                ? "No key needed"
-                : hasExistingKey
-                ? "Update key (optional)"
-                : "Enter API key"}
-            </Typography>
-
-            <AnimatePresence mode="wait">
-              {noKeyProviders.includes(provider) ? (
-                <motion.div key="local" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <Box sx={{
-                    p: 2, borderRadius: "10px",
-                    background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.22)",
-                    display: "flex", alignItems: "center", gap: 1.5,
-                  }}>
-                    <CheckCircleOutlined sx={{ fontSize: 17, color: "#22c55e" }} />
-                    <Typography sx={{ fontSize: "0.85rem", color: "#22c55e", fontWeight: 600 }}>
-                      Local AI needs no API key  just click Save
-                    </Typography>
-                  </Box>
-                </motion.div>
-              ) : (
-                <motion.div key={provider} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  {/* Link to get key */}
-                  {sel.url && (
-                    <Box sx={{
-                      p: 2, mb: 2, borderRadius: "10px",
-                      background: "rgba(63,114,175,0.05)", border: "1px solid rgba(63,114,175,0.12)",
-                    }}>
-                      <Typography sx={{ fontSize: "0.78rem", color: isDark ? "rgba(219,226,239,0.55)" : "rgba(17,45,78,0.55)", mb: 0.75 }}>
-                        Get your free {sel.name} API key:
-                      </Typography>
-                      <a
-                        href={sel.url} target="_blank" rel="noopener noreferrer"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#3F72AF", fontSize: "0.78rem", fontWeight: 700, textDecoration: "none" }}
-                      >
-                        {sel.url} <OpenInNewOutlined style={{ fontSize: 13 }} />
-                      </a>
-                    </Box>
-                  )}
-
-                  {/* Key input */}
-                  <TextField
-                    fullWidth
-                    label={`${sel.name} API Key`}
-                    placeholder={hasExistingKey ? "Leave blank to keep existing key" : sel.placeholder}
-                    value={apiKey}
-                    onChange={(e) => { setApiKey(e.target.value); setError(""); }}
-                    type={showKey ? "text" : "password"}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <KeyOutlined sx={{ fontSize: 16, color: "rgba(63,114,175,0.3)" }} />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowKey((s) => !s)}
-                            edge="end" size="small"
-                            sx={{ color: "rgba(255,255,255,0.3)" }}
-                          >
-                            {showKey
-                              ? <VisibilityOff sx={{ fontSize: 16 }} />
-                              : <Visibility sx={{ fontSize: 16 }} />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    helperText={
-                      hasExistingKey
-                        ? "Leave blank to keep your existing key, or type a new one to replace it."
-                        : "Your key is stored securely and never shared."
-                    }
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/*  Save button  plain <button> so it always fires  */}
-            <button
-              onClick={handleSave}
-              disabled={saving || !canSave}
-              style={{
-                marginTop: 24, width: "100%", padding: "13px 0",
-                borderRadius: 10, border: "none",
-                background: saving || !canSave
-                  ? "rgba(63,114,175,0.15)"
-                  : "linear-gradient(135deg,#3F72AF,#2d5a8e)",
-                color: saving || !canSave ? (isDark ? "rgba(255,255,255,0.3)" : "rgba(17,45,78,0.3)") : "#fff",
-                fontWeight: 800, fontSize: "0.95rem",
-                cursor: saving || !canSave ? "not-allowed" : "pointer",
-                fontFamily: "Inter,sans-serif",
-                boxShadow: canSave && !saving ? "0 0 22px rgba(63,114,175,0.28)" : "none",
-                transition: "all 0.2s",
-              }}
-            >
-              {saving ? "Saving..." : "Save Settings"}
-            </button>
-
-            {/* Go to chat link */}
-            {current?.is_configured && (
-              <Box textAlign="center" mt={2}>
-                <Typography
-                  onClick={() => navigate("/chat")}
-                  sx={{
-                    fontSize: "0.82rem", color: "rgba(63,114,175,0.5)",
-                    cursor: "pointer", "&:hover": { color: "#3F72AF" },
-                    transition: "color 0.15s",
-                  }}
-                >
-                   Back to Chat
+              <Box display="flex" alignItems="center" gap={1.5}>
+                <CheckCircleOutlined sx={{ fontSize: 14, color: "#22c55e" }} />
+                <Typography sx={{ fontSize: "0.82rem", fontWeight: 700, color: "#22c55e" }}>
+                  {PROVIDERS.find((p) => p.id === current.provider)?.name} is active
                 </Typography>
+                {current.api_key_preview && (
+                  <Typography sx={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.15)", fontFamily: "'JetBrains Mono', monospace" }}>
+                    {current.api_key_preview}
+                  </Typography>
+                )}
+              </Box>
+              <Tooltip title="Remove API key">
+                <Box onClick={handleDelete} sx={{ cursor: "pointer", color: "rgba(255,255,255,0.15)", "&:hover": { color: "#ef4444" }, display: "flex", transition: "color 0.15s" }}>
+                  <DeleteOutlined sx={{ fontSize: 14 }} />
+                </Box>
+              </Tooltip>
+            </Box>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSuccess("")}>{success}</Alert>}
+      {error   && <Alert severity="error"   sx={{ mb: 2, borderRadius: 2, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5", "& .MuiAlert-icon": { color: "#ef4444" } }} onClose={() => setError("")}>{error}</Alert>}
+
+      <Box display="flex" flexDirection="column" gap={1} mb={3.5}>
+        {PROVIDERS.map((p) => {
+          const isSel = provider === p.id;
+          const isAct = current?.is_configured && current?.provider === p.id;
+          return (
+            <div
+              key={p.id}
+              onClick={() => { setProvider(p.id); setApiKey(""); setError(""); setSuccess(""); }}
+              style={{
+                padding: "13px 16px", borderRadius: 11, cursor: "pointer",
+                border: `1px solid ${isSel ? "rgba(255,106,61,0.28)" : "rgba(255,255,255,0.05)"}`,
+                background: isSel ? "rgba(255,106,61,0.05)" : "rgba(255,255,255,0.015)",
+                transition: "all 0.15s", userSelect: "none",
+              }}
+              onMouseEnter={(e) => { if (!isSel) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; } }}
+              onMouseLeave={(e) => { if (!isSel) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)"; e.currentTarget.style.background = "rgba(255,255,255,0.015)"; } }}
+            >
+              <Box display="flex" alignItems="center" gap={1.5} mb={0.3}>
+                <Box sx={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, bgcolor: isSel ? A : "rgba(255,255,255,0.12)", boxShadow: isSel ? `0 0 7px ${A}` : "none", transition: "all 0.15s" }} />
+                <Typography sx={{ fontWeight: 700, fontSize: "0.86rem", color: "#f5f5f5" }}>{p.name}</Typography>
+                <NeonBadge color={p.badgeColor === A ? "orange" : p.badgeColor === "#22c55e" ? "green" : "amber"} size="xs">{p.badge}</NeonBadge>
+                {isAct && <NeonBadge color="green" size="xs">ACTIVE</NeonBadge>}
+                <Typography sx={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.2)", ml: "auto", fontFamily: "'JetBrains Mono', monospace" }}>{p.model}</Typography>
+              </Box>
+              <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)", ml: 3.5 }}>{p.desc}</Typography>
+            </div>
+          );
+        })}
+      </Box>
+
+      <SectionLabel>
+        Step 2 — {noKey ? "No key needed" : hasKey ? "Update key (optional)" : "Enter API key"}
+      </SectionLabel>
+
+      <AnimatePresence mode="wait">
+        {noKey ? (
+          <motion.div key="local" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <Box sx={{ p: 2, borderRadius: "10px", background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.14)", display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+              <CheckCircleOutlined sx={{ fontSize: 14, color: "#22c55e" }} />
+              <Typography sx={{ fontSize: "0.83rem", color: "#22c55e", fontWeight: 600 }}>Local AI — no API key required. Click Save.</Typography>
+            </Box>
+          </motion.div>
+        ) : (
+          <motion.div key={provider} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            {sel.url && (
+              <Box sx={{ p: 2, mb: 2, borderRadius: "10px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <Typography sx={{ fontSize: "0.76rem", color: "rgba(255,255,255,0.3)", mb: 0.75 }}>Get your free {sel.name} API key:</Typography>
+                <a href={sel.url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: A, fontSize: "0.76rem", fontWeight: 700, textDecoration: "none" }}>
+                  {sel.url} <OpenInNewOutlined style={{ fontSize: 12 }} />
+                </a>
               </Box>
             )}
-          </Box>
-        </motion.div>
+            <TextField
+              fullWidth
+              label={`${sel.name} API Key`}
+              placeholder={hasKey ? "Leave blank to keep existing key" : sel.placeholder}
+              value={apiKey}
+              onChange={(e) => { setApiKey(e.target.value); setError(""); }}
+              type={showKey ? "text" : "password"}
+              sx={{ mb: 3 }}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><KeyOutlined sx={{ fontSize: 14, color: "rgba(255,255,255,0.15)" }} /></InputAdornment>,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowKey((s) => !s)} edge="end" size="small" sx={{ color: "rgba(255,255,255,0.2)" }}>
+                      {showKey ? <VisibilityOff sx={{ fontSize: 14 }} /> : <Visibility sx={{ fontSize: 14 }} />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              helperText={hasKey ? "Leave blank to keep your existing key, or type a new one to replace it." : "Stored securely and never shared."}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AccentButton onClick={handleSave} disabled={saving || !canSave} loading={saving} size="md" fullWidth>
+        {saving ? "Saving..." : "Save AI Settings"}
+      </AccentButton>
+    </Box>
+  );
+}
+
+function RetrievalSection() {
+  const [chunkSize, setChunkSize] = useState(400);
+  const [topK, setTopK] = useState(5);
+  const [threshold, setThreshold] = useState(0.6);
+
+  return (
+    <Box>
+      <SectionLabel>Retrieval Configuration</SectionLabel>
+      <Typography sx={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.3)", mb: 3.5, lineHeight: 1.6 }}>
+        These settings control how BrainDoc splits and retrieves document content. Changes take effect on the next document upload.
+      </Typography>
+      <SliderInput value={chunkSize} onChange={setChunkSize} min={100} max={1000} step={50} label="Chunk Size (tokens)"
+        hint={<Box display="flex" justifyContent="space-between" width="100%"><span>Precise (100)</span><span>Broad (1000)</span></Box>}
+      />
+      <SliderInput value={topK} onChange={setTopK} min={1} max={20} step={1} label="Top-K Results"
+        hint={<Box display="flex" justifyContent="space-between" width="100%"><span>Focused (1)</span><span>Broad (20)</span></Box>}
+      />
+      <SliderInput value={threshold} onChange={setThreshold} min={0} max={1} step={0.05} label="Similarity Threshold"
+        hint={<Box display="flex" justifyContent="space-between" width="100%"><span>Permissive (0.0)</span><span>Strict (1.0)</span></Box>}
+      />
+      <Box mt={3}>
+        <AccentButton size="md">Apply Retrieval Settings</AccentButton>
       </Box>
     </Box>
   );
 }
 
+function WorkspaceSection() {
+  const [autoEmbed, setAutoEmbed] = useState(true);
+  const [sessionPersist, setSessionPersist] = useState(false);
 
+  return (
+    <Box>
+      <SectionLabel>Workspace Settings</SectionLabel>
+      <ToggleSwitch
+        checked={autoEmbed}
+        onChange={setAutoEmbed}
+        label="Auto-embed on upload"
+        description="Automatically start indexing PDFs as soon as they are uploaded"
+      />
+      <ToggleSwitch
+        checked={sessionPersist}
+        onChange={setSessionPersist}
+        label="Persist chat sessions"
+        description="Keep conversation history between sessions (requires storage)"
+      />
+      <Box sx={{ mt: 3, p: 2.5, borderRadius: "11px", background: "rgba(255,106,61,0.04)", border: "1px solid rgba(255,106,61,0.12)" }}>
+        <Typography sx={{ fontSize: "0.78rem", color: "rgba(255,106,61,0.7)", lineHeight: 1.6 }}>
+          ⚠ BrainDoc uses ephemeral in-memory storage. Uploaded PDFs and embeddings are cleared when the session ends or the server restarts.
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
 
+function AppearanceSection() {
+  return (
+    <Box>
+      <SectionLabel>Appearance</SectionLabel>
+      <Typography sx={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.3)", mb: 3, lineHeight: 1.6 }}>
+        BrainDoc uses a fixed dark theme optimized for deep-focus document work.
+      </Typography>
+      <Box sx={{ p: 3, borderRadius: "12px", background: "rgba(22,22,22,0.7)", border: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Box>
+          <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: "#f5f5f5" }}>Matte Black Theme</Typography>
+          <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)", mt: 0.25 }}>BrainDoc default — optimized for readability</Typography>
+        </Box>
+        <NeonBadge color="green">Active</NeonBadge>
+      </Box>
+      <Box sx={{ p: 3, mt: 1.5, borderRadius: "12px", background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Box>
+          <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: "rgba(255,255,255,0.3)" }}>Light Theme</Typography>
+          <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.2)", mt: 0.25 }}>Coming soon</Typography>
+        </Box>
+        <NeonBadge color="muted">Soon</NeonBadge>
+      </Box>
+      <Box sx={{ mt: 3.5 }}>
+        <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", mb: 1.5 }}>Brand Accent</Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Box sx={{ width: 36, height: 36, borderRadius: "9px", background: A, boxShadow: "0 0 18px rgba(255,106,61,0.4)" }} />
+          <Box>
+            <Typography sx={{ fontSize: "0.82rem", color: "#f5f5f5", fontFamily: "'JetBrains Mono', monospace" }}>#ff6a3d</Typography>
+            <Typography sx={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.3)" }}>BrainDoc orange — locked as brand color</Typography>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
 
+export default function SettingsPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const [activeSection, setActiveSection] = useState("ai");
+  const [current, setCurrent] = useState(null);
+  const [pageLoading, setPageLoading] = useState(true);
 
+  useEffect(() => {
+    getAISettings()
+      .then(({ data }) => { setCurrent(data); })
+      .catch(() => { setCurrent({ is_configured: false }); })
+      .finally(() => setPageLoading(false));
+  }, []);
 
+  if (pageLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: "calc(100vh - 56px)", zIndex: 1, position: "relative" }}>
+        <CircularProgress sx={{ color: A }} />
+      </Box>
+    );
+  }
+
+  const SIDEBAR_PAGES = [
+    { id: "/dashboard", label: "Profile",  icon: <PersonOutlined sx={{ fontSize: 17 }} /> },
+    { id: "/chat",      label: "Chat",     icon: <ChatOutlined sx={{ fontSize: 17 }} /> },
+    { id: "/settings",  label: "Settings", icon: <SettingsOutlined sx={{ fontSize: 17 }} />, badge: current?.is_configured ? "ON" : null, badgeColor: "green" },
+  ];
+
+  return (
+    <Box sx={{
+      display: "flex", minHeight: "calc(100vh - 56px)",
+      position: "relative", zIndex: 1, background: "#0a0a0a",
+    }}>
+      {/* ── Left Sidebar ── */}
+      <Box sx={{
+        width: 240, flexShrink: 0,
+        borderRight: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(14,14,14,0.8)", backdropFilter: "blur(20px)",
+        display: "flex", flexDirection: "column",
+        position: "sticky", top: 56, height: "calc(100vh - 56px)",
+      }}>
+        <Box sx={{ px: 3, pt: 4, pb: 3, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", mb: 2 }}>
+            Navigation
+          </Typography>
+          <SidebarNav items={SIDEBAR_PAGES} active={location.pathname} onSelect={(id) => navigate(id)} />
+        </Box>
+
+        {/* Settings sub-nav */}
+        <Box sx={{ px: 2, pt: 2.5, flex: 1 }}>
+          <Typography sx={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.15)", textTransform: "uppercase", px: 1, mb: 1.5 }}>
+            Settings
+          </Typography>
+          <SidebarNav items={NAV_ITEMS} active={activeSection} onSelect={setActiveSection} />
+        </Box>
+
+        <Box sx={{ px: 3, py: 3, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <AvatarCircle name={user?.username || "U"} size={30} showStatus />
+            <Box minWidth={0}>
+              <Typography sx={{ fontSize: "0.8rem", fontWeight: 600, color: "#f5f5f5" }} noWrap>{user?.username || "User"}</Typography>
+              <Typography sx={{ fontSize: "0.66rem", color: "rgba(255,255,255,0.25)" }} noWrap>{user?.email}</Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* ── Main Content ── */}
+      <Box sx={{ flex: 1, overflow: "auto", p: { xs: 3, md: 5 }, maxWidth: 720 }}>
+        <motion.div
+          key={activeSection}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {/* Header */}
+          <Box mb={5}>
+            <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,106,61,0.45)", textTransform: "uppercase", mb: 0.75 }}>
+              Settings
+            </Typography>
+            <Typography variant="h4" fontWeight={800} sx={{ color: "#f5f5f5", letterSpacing: "-0.03em", fontFamily: "'DM Sans', Inter, sans-serif" }}>
+              {NAV_ITEMS.find((n) => n.id === activeSection)?.label || "Settings"}
+            </Typography>
+          </Box>
+
+          {/* Section content card */}
+          <GlassCard hover={false}>
+            <Box p={{ xs: 3, md: 4 }}>
+              {activeSection === "ai"          && <AISection current={current} setCurrent={setCurrent} />}
+              {activeSection === "retrieval"   && <RetrievalSection />}
+              {activeSection === "workspace"   && <WorkspaceSection />}
+              {activeSection === "appearance"  && <AppearanceSection />}
+            </Box>
+          </GlassCard>
+        </motion.div>
+      </Box>
+    </Box>
+  );
+}

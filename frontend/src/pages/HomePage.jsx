@@ -1,463 +1,478 @@
 import React, { useEffect, useRef } from "react";
 import { Box, Typography, Container, Grid } from "@mui/material";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useAppTheme } from "../context/ThemeContext";
 import {
   UploadFileOutlined, SearchOutlined, AutoAwesomeOutlined,
   HubOutlined, BlurOnOutlined, MemoryOutlined,
-  SecurityOutlined, KeyboardArrowRightOutlined,
-  AutoFixHighOutlined, SpeedOutlined
+  SecurityOutlined, SpeedOutlined, AutoFixHighOutlined,
+  KeyboardArrowRightOutlined,
 } from "@mui/icons-material";
 import SplineHero from "../components/SplineHero";
 import { HoverFooter } from "../components/ui/hover-footer";
-import { LampContainer } from "../components/ui/lamp";
 
-gsap.registerPlugin(ScrollTrigger);
+const A = "#ff6a3d";
+const AG = "rgba(255,106,61,0.35)";
 
-// Custom tokens for the cinematic aesthetic
-function useTokens() {
-  const { mode } = useAppTheme();
-  const d = mode === "dark";
-  return {
-    d,
-    bg: d ? "#030712" : "#f8fafc",
-    surface: d ? "rgba(17, 24, 39, 0.4)" : "rgba(255, 255, 255, 0.6)",
-    border: d ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
-    text: d ? "#f9fafb" : "#0f172a",
-    muted: d ? "#9ca3af" : "#64748b",
-    accent: "#06b6d4",
-    accentGlow: "rgba(6, 182, 212, 0.15)",
-  };
-}
-
-// Minimal futuristic badge
-function SectionBadge({ children }) {
-  const T = useTokens();
+/* ── Section label pill ──────────────────────────────────────────────── */
+function Label({ children }) {
   return (
-    <Box display="inline-flex" alignItems="center" gap={1.5} sx={{
-      px: 2, py: 0.75, mb: 3, borderRadius: "100px",
-      background: T.surface, border: `1px solid ${T.border}`,
-      backdropFilter: "blur(12px)",
+    <Box sx={{
+      display: "inline-flex", alignItems: "center", gap: 1,
+      px: 2, py: 0.65, mb: 3, borderRadius: "100px",
+      background: "rgba(255,106,61,0.07)",
+      border: "1px solid rgba(255,106,61,0.18)",
     }}>
-      <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: T.accent, boxShadow: `0 0 10px ${T.accent}` }} />
-      <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.15em", color: T.text, textTransform: "uppercase" }}>
+      <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 2.4, repeat: Infinity }}>
+        <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: A, boxShadow: `0 0 8px ${A}` }} />
+      </motion.div>
+      <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.15em", color: A, textTransform: "uppercase", fontFamily: "'DM Sans', Inter, sans-serif" }}>
         {children}
       </Typography>
     </Box>
   );
 }
 
-// Cinematic Card with hover glow
-function CinematicCard({ children, style = {} }) {
-  const T = useTokens();
+/* ── Glass card ──────────────────────────────────────────────────────── */
+function GCard({ children, sx = {}, delay = 0 }) {
   return (
     <motion.div
-      whileHover={{ y: -5 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -4 }}
       style={{
-        background: T.surface,
-        backdropFilter: "blur(20px)",
-        border: `1px solid ${T.border}`,
-        borderRadius: "24px",
+        background: "rgba(22,22,22,0.7)",
+        backdropFilter: "blur(24px)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 18,
         position: "relative",
         overflow: "hidden",
-        ...style,
+        transition: "border-color 0.2s",
+        ...sx,
       }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,106,61,0.18)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; }}
     >
-      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${T.accentGlow}, transparent 40%)`, opacity: 0, transition: "opacity 0.3s", pointerEvents: "none", className: "glow-effect" }} />
+      <Box sx={{
+        position: "absolute", top: 0, left: "8%", right: "8%", height: "1px",
+        background: "linear-gradient(90deg, transparent, rgba(255,106,61,0.22), transparent)",
+        pointerEvents: "none",
+      }} />
       {children}
     </motion.div>
   );
 }
 
-// Sticky Scrolling Section (Webflow Style)
-function StickyScrollSection() {
-  const T = useTokens();
-  
-  const steps = [
-    { num: "01", title: "Semantic Ingestion", desc: "PDFs are parsed and cleaned instantly. Unstructured text is transformed into machine-readable neural chunks in memory.", icon: <UploadFileOutlined fontSize="large" /> },
-    { num: "02", title: "Vector Embedding", desc: "High-dimensional sentence transformers map your chunks into a FAISS index, capturing deep contextual relationships.", icon: <BlurOnOutlined fontSize="large" /> },
-    { num: "03", title: "Neural Retrieval", desc: "Your queries are instantly embedded and matched against thousands of vectors, pulling the exact semantic context needed.", icon: <SearchOutlined fontSize="large" /> },
-    { num: "04", title: "Generative Reasoning", desc: "LLMs synthesize the retrieved vectors into precise, grounded answers with zero hallucination.", icon: <HubOutlined fontSize="large" /> },
-  ];
+/* ── How it works — 3-step flow ──────────────────────────────────────── */
+const HOW_STEPS = [
+  { n: "01", icon: <UploadFileOutlined sx={{ fontSize: 28 }} />, title: "Upload PDF",       desc: "Drop any digital or scanned PDF. Our extractor handles text-layer PDFs natively and runs Tesseract OCR at 300 DPI for image-based pages." },
+  { n: "02", icon: <BlurOnOutlined     sx={{ fontSize: 28 }} />, title: "Embed & Index",    desc: "Each chunk is encoded into a 384-dimensional dense vector using ONNX fastembed. Vectors are stored in-memory — zero latency, total privacy." },
+  { n: "03", icon: <AutoAwesomeOutlined sx={{ fontSize: 28 }} />, title: "Ask Anything",    desc: "Type a question in plain language. BrainDoc retrieves the top semantic matches and grounds the AI answer in your exact document." },
+];
 
+function HowItWorksSection() {
   return (
-    <Container maxWidth="xl" sx={{ position: "relative", py: { xs: 10, md: 20 } }}>
-       <Grid container spacing={8}>
-          <Grid item xs={12} md={5}>
-             <Box sx={{ position: "sticky", top: "12vh", mb: { xs: 8, md: 0 } }}>
-                <SectionBadge>NEURAL PIPELINE</SectionBadge>
-                <Typography variant="h2" sx={{ fontSize: {xs: "2.5rem", md: "4.5rem"}, fontWeight: 700, letterSpacing: "-0.04em", mb: 3, lineHeight: 1.1, color: T.text }}>
-                  Upload.<br/>Embed.<br/>
-                  <Box component="span" sx={{ background: `linear-gradient(135deg, ${T.accent}, #3b82f6)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                    Retrieve.
-                  </Box>
-                </Typography>
-                <Typography sx={{ fontSize: "1rem", color: T.muted, lineHeight: 1.6, maxWidth: 380, mb: 5 }}>
-                  A continuous flow of intelligence. We extract meaning from your documents, chunk them via semantic boundaries, and vectorise them for sub-millisecond retrieval.
-                </Typography>
+    <Box sx={{ position: "relative", py: { xs: 10, md: 18 }, overflow: "hidden" }}>
+      <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "rgba(255,255,255,0.04)" }} />
+      <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "1px", background: "rgba(255,255,255,0.04)" }} />
+      <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "50%", height: "100%", background: "radial-gradient(ellipse, rgba(255,106,61,0.05) 0%, transparent 65%)", pointerEvents: "none" }} />
 
-                {/* Animated Pipeline Flowchart */}
-                <PipelineFlowchart T={T} />
-             </Box>
-          </Grid>
-          <Grid item xs={12} md={7}>
-             <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 4, md: 8 } }}>
-                {steps.map((step, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 50 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-100px" }}
-                    transition={{ duration: 0.7, delay: i * 0.1 }}
-                  >
-                    <CinematicCard style={{ padding: "40px" }}>
-                      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={4}>
-                        <Box sx={{ width: 60, height: 60, borderRadius: "16px", background: `linear-gradient(135deg, ${T.surface}, transparent)`, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: T.accent }}>
-                          {step.icon}
-                        </Box>
-                        <Typography sx={{ fontSize: "3rem", fontWeight: 800, color: T.border, lineHeight: 1 }}>
-                          {step.num}
-                        </Typography>
-                      </Box>
-                      <Typography variant="h4" sx={{ fontSize: "1.8rem", fontWeight: 700, mb: 2, color: T.text }}>
-                        {step.title}
-                      </Typography>
-                      <Typography sx={{ fontSize: "1rem", color: T.muted, lineHeight: 1.7 }}>
-                        {step.desc}
-                      </Typography>
-                    </CinematicCard>
-                  </motion.div>
-                ))}
-             </Box>
-          </Grid>
-       </Grid>
-    </Container>
-  );
-}
-
-// Animated Pipeline Flowchart component
-function PipelineFlowchart({ T }) {
-  const pipelineNodes = [
-    { label: "PDF Upload", sublabel: "raw document ingestion", color: "#06b6d4" },
-    { label: "Chunking", sublabel: "semantic segmentation", color: "#3b82f6" },
-    { label: "Embedding", sublabel: "FAISS vector index", color: "#8b5cf6" },
-    { label: "Retrieval", sublabel: "top-k similarity search", color: "#06b6d4" },
-    { label: "LLM Answer", sublabel: "grounded AI response", color: "#10b981" },
-  ];
-
-  return (
-    <Box sx={{ position: "relative", width: "100%", maxWidth: 340 }}>
-      {pipelineNodes.map((node, i) => (
-        <Box key={i} sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-          {/* Node row */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: i * 0.12 }}
-            style={{ width: "100%" }}
-          >
-            <Box sx={{
-              display: "flex", alignItems: "center", gap: 2,
-              px: 2.5, py: 1.8,
-              borderRadius: "14px",
-              background: T.d ? `rgba(255,255,255,0.04)` : `rgba(0,0,0,0.03)`,
-              border: `1px solid ${T.d ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)"}`,
-              backdropFilter: "blur(12px)",
-              position: "relative",
-              overflow: "hidden",
-              cursor: "default",
-              transition: "all 0.3s ease",
-              "&:hover": {
-                background: T.d ? "rgba(6,182,212,0.08)" : "rgba(6,182,212,0.06)",
-                border: `1px solid ${node.color}55`,
-                transform: "translateX(4px)",
-              }
-            }}>
-              {/* Left accent bar */}
-              <Box sx={{
-                position: "absolute", left: 0, top: "20%", bottom: "20%",
-                width: 3, borderRadius: "2px",
-                background: node.color,
-                boxShadow: `0 0 8px ${node.color}88`,
-              }} />
-
-              {/* Step number badge */}
-              <Box sx={{
-                minWidth: 34, height: 34, borderRadius: "9px",
-                background: `${node.color}18`,
-                border: `1px solid ${node.color}44`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                ml: 0.5, flexShrink: 0,
-              }}>
-                <Typography sx={{ fontSize: "0.65rem", fontWeight: 900, color: node.color, letterSpacing: "0.05em" }}>
-                  {String(i + 1).padStart(2, "0")}
-                </Typography>
-              </Box>
-
-              {/* Text */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontSize: "0.83rem", fontWeight: 700, color: T.text, lineHeight: 1.2 }}>
-                  {node.label}
-                </Typography>
-                <Typography sx={{ fontSize: "0.68rem", color: T.muted, mt: 0.2, lineHeight: 1.2 }}>
-                  {node.sublabel}
-                </Typography>
-              </Box>
-
-              {/* Pulsing status dot */}
-              <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.4 }}>
-                <Box sx={{ width: 7, height: 7, borderRadius: "50%", background: node.color, boxShadow: `0 0 8px ${node.color}` }} />
-              </motion.div>
-            </Box>
-          </motion.div>
-
-          {/* Animated connector between nodes */}
-          {i < pipelineNodes.length - 1 && (
-            <motion.div
-              initial={{ scaleY: 0, opacity: 0 }}
-              whileInView={{ scaleY: 1, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.12 + 0.3 }}
-              style={{ transformOrigin: "top", marginLeft: "30px" }}
-            >
-              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 0.3 }}>
-                {[0, 1, 2].map(dot => (
-                  <motion.div key={dot} animate={{ opacity: [0.2, 0.9, 0.2] }} transition={{ duration: 1.4, repeat: Infinity, delay: dot * 0.25 + i * 0.3 }}>
-                    <Box sx={{
-                      width: 2, height: 5, borderRadius: "1px", mb: "3px",
-                      background: `linear-gradient(to bottom, ${pipelineNodes[i].color}, ${pipelineNodes[i + 1].color})`,
-                    }} />
-                  </motion.div>
-                ))}
-                {/* Arrow tip */}
-                <Box sx={{
-                  width: 0, height: 0,
-                  borderLeft: "4px solid transparent",
-                  borderRight: "4px solid transparent",
-                  borderTop: `6px solid ${pipelineNodes[i + 1].color}99`,
-                  mt: 0.2,
-                }} />
-              </Box>
-            </motion.div>
-          )}
-        </Box>
-      ))}
-
-      {/* Output confirmation badge */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6, delay: 0.8 }}
-      >
-        <Box sx={{
-          mt: 2.5, px: 2.5, py: 1.3,
-          borderRadius: "12px",
-          background: "linear-gradient(135deg, rgba(16,185,129,0.12), rgba(6,182,212,0.06))",
-          border: "1px solid rgba(16,185,129,0.25)",
-          display: "flex", alignItems: "center", gap: 1.5,
-        }}>
-          <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 12px #10b981" }} />
-          </motion.div>
-          <Typography sx={{ fontSize: "0.68rem", fontWeight: 800, color: "#10b981", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-            Contextual Answer Generated
+      <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1 }}>
+        <Box textAlign="center" mb={9}>
+          <Label>How it works</Label>
+          <Typography variant="h2" sx={{ fontSize: { xs: "2.2rem", md: "3.6rem" }, fontWeight: 900, letterSpacing: "-0.04em", color: "#f5f5f5", fontFamily: "'DM Sans', Inter, sans-serif" }}>
+            Three steps to intelligence
           </Typography>
         </Box>
-      </motion.div>
+
+        <Grid container spacing={3}>
+          {HOW_STEPS.map((s, i) => (
+            <Grid item xs={12} md={4} key={i}>
+              <GCard delay={i * 0.1}>
+                <Box sx={{ p: { xs: 3.5, md: 5 } }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3.5}>
+                    <Box sx={{
+                      width: 54, height: 54, borderRadius: "14px",
+                      background: "rgba(255,106,61,0.08)", border: "1px solid rgba(255,106,61,0.15)",
+                      display: "flex", alignItems: "center", justifyContent: "center", color: A,
+                    }}>
+                      {s.icon}
+                    </Box>
+                    <Typography sx={{ fontSize: "3.5rem", fontWeight: 900, color: "rgba(255,255,255,0.035)", lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
+                      {s.n}
+                    </Typography>
+                  </Box>
+                  <Typography variant="h5" sx={{ fontSize: "1.3rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>
+                    {s.title}
+                  </Typography>
+                  <Typography sx={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.7 }}>
+                    {s.desc}
+                  </Typography>
+                </Box>
+              </GCard>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
     </Box>
   );
 }
 
-// Bento Grid Section (Perplexity-style clean UI)
-function BentoFeatures() {
-  const T = useTokens();
-  
+/* ── Pipeline (sticky scroll) ────────────────────────────────────────── */
+const PIPELINE_STEPS = [
+  { num: "01", icon: <UploadFileOutlined />, title: "Semantic Ingestion",  desc: "PDFs parsed instantly — digital text or Tesseract OCR for scanned pages at 300 DPI." },
+  { num: "02", icon: <BlurOnOutlined />,     title: "Vector Embedding",    desc: "ONNX fastembed encodes each chunk into 384-dimensional dense vectors capturing deep meaning." },
+  { num: "03", icon: <SearchOutlined />,     title: "Neural Retrieval",    desc: "Queries embedded in real-time, cosine similarity matches the exact semantic context needed." },
+  { num: "04", icon: <HubOutlined />,        title: "Grounded Answer",     desc: "LLMs synthesize retrieved vectors into precise, hallucination-free responses with source citations." },
+];
+
+function PipelineSection() {
   return (
-    <Container maxWidth="xl" sx={{ py: { xs: 10, md: 20 } }}>
-       <Box textAlign="center" mb={10}>
-          <SectionBadge>INTELLIGENCE LAYER</SectionBadge>
-          <Typography variant="h2" sx={{ fontSize: {xs: "2.5rem", md: "4rem"}, fontWeight: 700, mb: 2, color: T.text, letterSpacing: "-0.03em" }}>
-            Beyond keyword search
-          </Typography>
-       </Box>
-       
-       <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
-             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-               <CinematicCard style={{ height: "400px", display: "flex", flexDirection: "column", padding: "40px" }}>
-                 <Box sx={{ flexGrow: 1 }}>
-                   <MemoryOutlined sx={{ fontSize: 40, color: T.accent, mb: 3 }} />
-                   <Typography variant="h4" sx={{ fontSize: "2rem", fontWeight: 700, color: T.text, mb: 2 }}>Contextual Memory</Typography>
-                   <Typography sx={{ fontSize: "1.1rem", color: T.muted, maxWidth: 500, lineHeight: 1.6 }}>
-                     Maintains conversation state across multi-turn interactions. Follow up naturally without losing context, just like talking to a human analyst.
-                   </Typography>
-                 </Box>
-               </CinematicCard>
-             </motion.div>
-          </Grid>
-          <Grid item xs={12} md={4}>
-             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }}>
-               <CinematicCard style={{ height: "400px", display: "flex", flexDirection: "column", padding: "40px", background: `linear-gradient(135deg, ${T.surface}, rgba(6, 182, 212, 0.05))` }}>
-                 <Box sx={{ flexGrow: 1 }}>
-                   <AutoFixHighOutlined sx={{ fontSize: 40, color: T.accent, mb: 3 }} />
-                   <Typography variant="h4" sx={{ fontSize: "2rem", fontWeight: 700, color: T.text, mb: 2 }}>Zero Hallucination</Typography>
-                   <Typography sx={{ fontSize: "1.1rem", color: T.muted, lineHeight: 1.6 }}>
-                     Answers are strictly grounded in your provided documents. If it's not in the PDF, the AI won't guess.
-                   </Typography>
-                 </Box>
-               </CinematicCard>
-             </motion.div>
-          </Grid>
-          <Grid item xs={12} md={4}>
-             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}>
-               <CinematicCard style={{ height: "350px", display: "flex", flexDirection: "column", padding: "40px" }}>
-                 <Box sx={{ flexGrow: 1 }}>
-                   <SpeedOutlined sx={{ fontSize: 40, color: T.accent, mb: 3 }} />
-                   <Typography variant="h4" sx={{ fontSize: "1.8rem", fontWeight: 700, color: T.text, mb: 2 }}>Instant Indexing</Typography>
-                   <Typography sx={{ fontSize: "1rem", color: T.muted, lineHeight: 1.6 }}>
-                     FAISS-powered vector search gives you answers in milliseconds, regardless of document length.
-                   </Typography>
-                 </Box>
-               </CinematicCard>
-             </motion.div>
-          </Grid>
-          <Grid item xs={12} md={8}>
-             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }}>
-               <CinematicCard style={{ height: "350px", display: "flex", flexDirection: "column", padding: "40px", position: "relative", overflow: "hidden" }}>
-                 <Box sx={{ position: "absolute", right: "-10%", top: "-20%", opacity: 0.1 }}>
-                   <SecurityOutlined sx={{ fontSize: 400, color: T.accent }} />
-                 </Box>
-                 <Box sx={{ flexGrow: 1, position: "relative", zIndex: 2 }}>
-                   <SecurityOutlined sx={{ fontSize: 40, color: T.accent, mb: 3 }} />
-                   <Typography variant="h4" sx={{ fontSize: "2rem", fontWeight: 700, color: T.text, mb: 2 }}>Ephemeral RAG Architecture</Typography>
-                   <Typography sx={{ fontSize: "1.1rem", color: T.muted, maxWidth: 500, lineHeight: 1.6 }}>
-                     Absolute privacy by design. Your PDFs are processed purely in-memory. No vectors are saved to disk, and no documents are retained after your session ends.
-                   </Typography>
-                 </Box>
-               </CinematicCard>
-             </motion.div>
-          </Grid>
-       </Grid>
+    <Container maxWidth="xl" sx={{ py: { xs: 10, md: 18 } }}>
+      <Grid container spacing={{ xs: 6, md: 10 }}>
+        {/* Sticky left */}
+        <Grid item xs={12} md={5}>
+          <Box sx={{ position: { md: "sticky" }, top: "14vh" }}>
+            <Label>Neural Pipeline</Label>
+            <Typography variant="h2" sx={{
+              fontSize: { xs: "2.4rem", md: "4rem" },
+              fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.05, color: "#f5f5f5", mb: 2.5,
+              fontFamily: "'DM Sans', Inter, sans-serif",
+            }}>
+              Upload.<br />Embed.<br />
+              <Box component="span" sx={{ color: A, textShadow: `0 0 40px ${AG}` }}>Retrieve.</Box>
+            </Typography>
+            <Typography sx={{ fontSize: "0.95rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75, maxWidth: 360, mb: 5 }}>
+              A continuous intelligence flow — from raw PDF to context-grounded AI answers in seconds.
+            </Typography>
+
+            {/* Flow diagram */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              {["PDF Upload", "Chunking", "Embedding", "Retrieval", "LLM Answer"].map((step, i, arr) => (
+                <Box key={step}>
+                  <motion.div initial={{ opacity: 0, x: -14 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.09, duration: 0.45 }}>
+                    <Box sx={{
+                      display: "flex", alignItems: "center", gap: 1.75,
+                      px: 2, py: 1.35, borderRadius: "10px",
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                      transition: "all 0.18s",
+                      "&:hover": { background: "rgba(255,106,61,0.05)", borderColor: "rgba(255,106,61,0.14)" },
+                    }}>
+                      <Box sx={{
+                        minWidth: 26, height: 26, borderRadius: "7px",
+                        background: "rgba(255,106,61,0.1)", border: "1px solid rgba(255,106,61,0.2)",
+                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                      }}>
+                        <Typography sx={{ fontSize: "0.58rem", fontWeight: 900, color: A, fontFamily: "'JetBrains Mono', monospace" }}>
+                          {String(i + 1).padStart(2, "0")}
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontSize: "0.8rem", fontWeight: 500, color: "#f5f5f5", flex: 1 }}>{step}</Typography>
+                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.28 }}>
+                        <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: A, boxShadow: `0 0 5px ${A}` }} />
+                      </motion.div>
+                    </Box>
+                  </motion.div>
+                  {i < arr.length - 1 && (
+                    <Box sx={{ pl: "20px", py: 0.35 }}>
+                      {[0, 1, 2].map((d) => (
+                        <motion.div key={d} animate={{ opacity: [0.12, 0.65, 0.12] }} transition={{ duration: 1.2, repeat: Infinity, delay: d * 0.2 + i * 0.22 }}>
+                          <Box sx={{ width: 1.5, height: 4, borderRadius: "1px", mb: "3px", background: A, opacity: 0.35 }} />
+                        </motion.div>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Grid>
+
+        {/* Scrolling cards */}
+        <Grid item xs={12} md={7}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3.5 }}>
+            {PIPELINE_STEPS.map((s, i) => (
+              <GCard key={i} delay={i * 0.07}>
+                <Box sx={{ p: { xs: 3.5, md: 4.5 } }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3.5}>
+                    <Box sx={{ width: 50, height: 50, borderRadius: "13px", background: "rgba(255,106,61,0.08)", border: "1px solid rgba(255,106,61,0.14)", display: "flex", alignItems: "center", justifyContent: "center", color: A }}>
+                      {React.cloneElement(s.icon, { sx: { fontSize: 22 } })}
+                    </Box>
+                    <Typography sx={{ fontSize: "2.8rem", fontWeight: 900, color: "rgba(255,255,255,0.035)", lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
+                      {s.num}
+                    </Typography>
+                  </Box>
+                  <Typography variant="h4" sx={{ fontSize: "1.55rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>
+                    {s.title}
+                  </Typography>
+                  <Typography sx={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75 }}>
+                    {s.desc}
+                  </Typography>
+                </Box>
+              </GCard>
+            ))}
+          </Box>
+        </Grid>
+      </Grid>
     </Container>
   );
 }
 
-// Lamp UI Call to Action
+/* ── Bento features grid ─────────────────────────────────────────────── */
+function BentoSection() {
+  return (
+    <Container maxWidth="xl" sx={{ py: { xs: 10, md: 18 } }}>
+      <Box textAlign="center" mb={10}>
+        <Label>Intelligence Layer</Label>
+        <Typography variant="h2" sx={{ fontSize: { xs: "2.2rem", md: "3.6rem" }, fontWeight: 900, letterSpacing: "-0.04em", color: "#f5f5f5", mb: 2, fontFamily: "'DM Sans', Inter, sans-serif" }}>
+          Beyond keyword search
+        </Typography>
+        <Typography sx={{ fontSize: "0.975rem", color: "rgba(255,255,255,0.32)", maxWidth: 480, mx: "auto", lineHeight: 1.75 }}>
+          True semantic understanding powered by dense vector embeddings and retrieval-augmented generation.
+        </Typography>
+      </Box>
+
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" }, gap: 2.5 }}>
+        <GCard delay={0.0}>
+          <Box sx={{ p: { xs: 3.5, md: 5 }, height: { md: 340 }, display: "flex", flexDirection: "column" }}>
+            <Box sx={{ width: 46, height: 46, borderRadius: "12px", background: "rgba(255,106,61,0.08)", border: "1px solid rgba(255,106,61,0.14)", display: "flex", alignItems: "center", justifyContent: "center", color: A, mb: 3 }}>
+              <MemoryOutlined sx={{ fontSize: 21 }} />
+            </Box>
+            <Typography variant="h4" sx={{ fontSize: "1.7rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>Contextual Memory</Typography>
+            <Typography sx={{ fontSize: "0.92rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75, maxWidth: 460 }}>
+              Maintains multi-turn conversation state. Follow up naturally without losing context — like talking to a human analyst who remembers everything.
+            </Typography>
+          </Box>
+        </GCard>
+
+        <GCard delay={0.06} sx={{ background: "rgba(255,106,61,0.03)" }}>
+          <Box sx={{ p: { xs: 3.5, md: 5 }, height: { md: 340 }, display: "flex", flexDirection: "column" }}>
+            <Box sx={{ width: 46, height: 46, borderRadius: "12px", background: "rgba(255,106,61,0.1)", border: "1px solid rgba(255,106,61,0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: A, mb: 3 }}>
+              <AutoFixHighOutlined sx={{ fontSize: 21 }} />
+            </Box>
+            <Typography variant="h4" sx={{ fontSize: "1.7rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>Zero Hallucination</Typography>
+            <Typography sx={{ fontSize: "0.92rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75 }}>
+              Answers strictly grounded in your document. If it's not in the PDF, the AI won't guess.
+            </Typography>
+          </Box>
+        </GCard>
+
+        <GCard delay={0.1} sx={{ background: "rgba(255,106,61,0.025)", position: "relative" }}>
+          <Box sx={{ position: "absolute", right: "-6%", top: "-12%", opacity: 0.035, pointerEvents: "none" }}>
+            <SecurityOutlined sx={{ fontSize: 340, color: A }} />
+          </Box>
+          <Box sx={{ p: { xs: 3.5, md: 5 }, height: { md: 280 }, display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
+            <Box sx={{ width: 46, height: 46, borderRadius: "12px", background: "rgba(255,106,61,0.08)", border: "1px solid rgba(255,106,61,0.14)", display: "flex", alignItems: "center", justifyContent: "center", color: A, mb: 3 }}>
+              <SecurityOutlined sx={{ fontSize: 21 }} />
+            </Box>
+            <Typography variant="h4" sx={{ fontSize: "1.7rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>Ephemeral Privacy</Typography>
+            <Typography sx={{ fontSize: "0.92rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75, maxWidth: 480 }}>
+              Pure in-memory RAG. PDFs processed in RAM — no vectors written to disk, nothing retained after your session ends.
+            </Typography>
+          </Box>
+        </GCard>
+
+        <GCard delay={0.16}>
+          <Box sx={{ p: { xs: 3.5, md: 5 }, height: { md: 280 }, display: "flex", flexDirection: "column" }}>
+            <Box sx={{ width: 46, height: 46, borderRadius: "12px", background: "rgba(255,106,61,0.08)", border: "1px solid rgba(255,106,61,0.14)", display: "flex", alignItems: "center", justifyContent: "center", color: A, mb: 3 }}>
+              <SpeedOutlined sx={{ fontSize: 21 }} />
+            </Box>
+            <Typography variant="h4" sx={{ fontSize: "1.7rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>Instant Indexing</Typography>
+            <Typography sx={{ fontSize: "0.92rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75 }}>
+              ONNX-powered embedding delivers answers in milliseconds regardless of document length.
+            </Typography>
+          </Box>
+        </GCard>
+      </Box>
+    </Container>
+  );
+}
+
+/* ── Use cases ────────────────────────────────────────────────────────── */
+const USE_CASES = [
+  { icon: "📄", title: "Research Papers",   desc: "Extract methodology, results and conclusions from academic papers instantly." },
+  { icon: "⚖️", title: "Legal Documents",   desc: "Navigate contracts, identify key clauses and obligations in seconds." },
+  { icon: "🔧", title: "Technical Manuals", desc: "Query product specifications, troubleshooting guides and API documentation." },
+  { icon: "📊", title: "Business Reports",  desc: "Extract KPIs, forecasts and strategic insights from annual reports." },
+  { icon: "🎓", title: "Education",          desc: "Chat with textbooks, study guides and research material conversationally." },
+  { icon: "🏥", title: "Medical Literature", desc: "Review clinical studies, drug interactions and treatment protocols rapidly." },
+];
+
+function UseCasesSection() {
+  return (
+    <Container maxWidth="xl" sx={{ py: { xs: 10, md: 16 } }}>
+      <Box textAlign="center" mb={8}>
+        <Label>Use Cases</Label>
+        <Typography variant="h2" sx={{ fontSize: { xs: "2.2rem", md: "3.6rem" }, fontWeight: 900, letterSpacing: "-0.04em", color: "#f5f5f5", fontFamily: "'DM Sans', Inter, sans-serif" }}>
+          Built for every domain
+        </Typography>
+      </Box>
+      <Grid container spacing={2.5}>
+        {USE_CASES.map((uc, i) => (
+          <Grid item xs={12} sm={6} md={4} key={i}>
+            <motion.div
+              initial={{ opacity: 0, y: 22 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ delay: i * 0.055, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -4 }}
+              style={{
+                background: "rgba(22,22,22,0.7)", backdropFilter: "blur(20px)",
+                border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14,
+                padding: "26px 26px", height: "100%",
+                transition: "border-color 0.18s, background 0.18s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,106,61,0.18)"; e.currentTarget.style.background = "rgba(255,106,61,0.025)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; e.currentTarget.style.background = "rgba(22,22,22,0.7)"; }}
+            >
+              <Typography sx={{ fontSize: "1.75rem", mb: 1.5 }}>{uc.icon}</Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: "0.975rem", color: "#f5f5f5", mb: 0.75, fontFamily: "'DM Sans', Inter, sans-serif" }}>{uc.title}</Typography>
+              <Typography sx={{ fontSize: "0.84rem", color: "rgba(255,255,255,0.33)", lineHeight: 1.65 }}>{uc.desc}</Typography>
+            </motion.div>
+          </Grid>
+        ))}
+      </Grid>
+    </Container>
+  );
+}
+
+/* ── Social proof / stats bar ────────────────────────────────────────── */
+function StatsBar() {
+  const STATS = [
+    { value: "384-dim", label: "Vector dimensions" },
+    { value: "<100ms",  label: "Retrieval latency" },
+    { value: "50 MB",   label: "Max PDF size" },
+    { value: "RAG",     label: "Architecture" },
+    { value: "0 disk",  label: "Storage footprint" },
+  ];
+  return (
+    <Box sx={{ py: { xs: 6, md: 8 }, borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <Container maxWidth="xl">
+        <Box sx={{
+          display: "flex", flexWrap: "wrap", justifyContent: "center",
+          gap: { xs: 4, md: 0 },
+        }}>
+          {STATS.map((s, i) => (
+            <Box key={i} sx={{
+              flex: "1 1 160px", textAlign: "center",
+              borderRight: i < STATS.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+              px: 3,
+            }}>
+              <Typography sx={{ fontSize: { xs: "1.6rem", md: "2rem" }, fontWeight: 900, color: A, letterSpacing: "-0.03em", lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
+                {s.value}
+              </Typography>
+              <Typography sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", mt: 0.75, letterSpacing: "0.04em" }}>
+                {s.label}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </Container>
+    </Box>
+  );
+}
+
+/* ── CTA ─────────────────────────────────────────────────────────────── */
 function CinematicCTA() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
   return (
-    <Box sx={{ position: "relative", height: "80vh", width: "100%", mt: 10, display: "flex", alignItems: "center" }}>
-       <LampContainer>
-          <motion.h1
-            initial={{ opacity: 0, y: 100 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
-            style={{
-              background: "linear-gradient(to bottom, #ffffff, #9ca3af)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              textAlign: "center",
-              fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
-              fontWeight: 800,
-              letterSpacing: "-0.04em",
-              marginBottom: "2rem",
-              lineHeight: 1.1
-            }}
-          >
-            Ready for semantic<br/>intelligence?
-          </motion.h1>
-          <motion.button
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.5, duration: 0.8, ease: "easeInOut" }}
-            whileHover={{ scale: 1.05, background: "rgba(255,255,255,0.15)" }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate(user ? "/chat" : "/signup")}
-            style={{
-              padding: "16px 40px",
-              borderRadius: "50px",
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              color: "#fff",
-              fontSize: "1.1rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              backdropFilter: "blur(20px)",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              boxShadow: "0 0 40px rgba(6, 182, 212, 0.2)"
-            }}
-          >
-            Deploy Brain Doc <KeyboardArrowRightOutlined />
-          </motion.button>
-       </LampContainer>
+    <Box sx={{ position: "relative", py: { xs: 14, md: 22 }, overflow: "hidden" }}>
+      <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "60%", height: "100%", background: "radial-gradient(ellipse, rgba(255,106,61,0.07) 0%, transparent 65%)", pointerEvents: "none" }} />
+      <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "rgba(255,255,255,0.05)" }} />
+      <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "1px", background: "rgba(255,255,255,0.05)" }} />
+
+      <Container maxWidth="md" sx={{ position: "relative", zIndex: 1, textAlign: "center" }}>
+        <motion.div
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <Label>Get Started</Label>
+          <Typography variant="h2" sx={{
+            fontSize: { xs: "2.5rem", md: "4.2rem" },
+            fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.06, color: "#f5f5f5", mb: 2.5,
+            fontFamily: "'DM Sans', Inter, sans-serif",
+          }}>
+            Ready for<br />
+            <Box component="span" sx={{ color: A, textShadow: `0 0 60px ${AG}` }}>
+              semantic intelligence?
+            </Box>
+          </Typography>
+          <Typography sx={{ fontSize: "1rem", color: "rgba(255,255,255,0.33)", mb: 5, lineHeight: 1.75, maxWidth: 480, mx: "auto" }}>
+            Upload your first PDF and start asking questions in plain language. No API key needed to get started.
+          </Typography>
+          <Box display="flex" gap={2} justifyContent="center" flexWrap="wrap">
+            <motion.button
+              whileHover={{ scale: 1.04, boxShadow: "0 0 50px rgba(255,106,61,0.48)" }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate(user ? "/chat" : "/signup")}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 10,
+                padding: "14px 38px", borderRadius: 10, border: "none",
+                background: A, color: "#fff",
+                fontWeight: 800, fontSize: "0.975rem",
+                cursor: "pointer", fontFamily: "'DM Sans', Inter, sans-serif",
+                boxShadow: "0 0 28px rgba(255,106,61,0.28)",
+                transition: "box-shadow 0.2s",
+              }}
+            >
+              {user ? "Open Workspace" : "Start for Free"}
+              <KeyboardArrowRightOutlined />
+            </motion.button>
+            {!user && (
+              <motion.button
+                whileHover={{ scale: 1.03, borderColor: "rgba(255,255,255,0.22)", color: "#f5f5f5" }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => navigate("/login")}
+                style={{
+                  padding: "14px 38px", borderRadius: 10,
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(255,255,255,0.03)",
+                  color: "rgba(255,255,255,0.5)",
+                  fontWeight: 500, fontSize: "0.975rem",
+                  cursor: "pointer", fontFamily: "'DM Sans', Inter, sans-serif",
+                  transition: "border-color 0.2s, color 0.2s",
+                }}
+              >
+                See how it works
+              </motion.button>
+            )}
+          </Box>
+        </motion.div>
+      </Container>
     </Box>
   );
 }
 
-// 
-// MAIN PAGE EXPORT
-// 
+/* ── MAIN ────────────────────────────────────────────────────────────── */
 export default function HomePage() {
-  const T = useTokens();
   const { scrollYProgress } = useScroll();
-  const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
-
-  // Mouse glow effect handler for cinematic cards
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      document.querySelectorAll('.glow-effect').forEach((el) => {
-        const rect = el.parentElement.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        el.style.setProperty('--mouse-x', `${x}px`);
-        el.style.setProperty('--mouse-y', `${y}px`);
-        el.style.opacity = "1";
-      });
-    };
-    
-    const handleMouseLeave = () => {
-      document.querySelectorAll('.glow-effect').forEach((el) => {
-        el.style.opacity = "0";
-      });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+  const opacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
 
   return (
-    <Box sx={{ position: "relative", zIndex: 1, bgcolor: T.bg, minHeight: "100vh", overflowX: "hidden" }}>
-      
-      {/* 3D Spline Centerpiece with Fade on Scroll */}
+    <Box sx={{ position: "relative", zIndex: 1, bgcolor: "#0a0a0a", minHeight: "100vh", overflowX: "hidden" }}>
       <motion.div style={{ opacity, position: "relative", zIndex: 10 }}>
         <SplineHero />
       </motion.div>
 
-      {/* Main Content Layers */}
       <Box sx={{ position: "relative", zIndex: 20 }}>
-        <StickyScrollSection />
-        <BentoFeatures />
+        <HowItWorksSection />
+        <StatsBar />
+        <PipelineSection />
+        <BentoSection />
+        <UseCasesSection />
         <CinematicCTA />
       </Box>
 
-      {/* Footer */}
-      <Box sx={{ position: "relative", zIndex: 30, background: T.bg }}>
+      <Box sx={{ position: "relative", zIndex: 30, background: "#0a0a0a" }}>
         <HoverFooter />
       </Box>
-
     </Box>
   );
 }

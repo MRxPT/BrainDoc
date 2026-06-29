@@ -7,57 +7,55 @@ export function useAppTheme() {
   return useContext(ThemeCtx);
 }
 
-//  Palette 
-// #F9F7F7  off-white      -> light bg, light text on dark
-// #DBE2EF  soft blue-grey -> secondary surfaces, borders, muted text
-// #3F72AF  medium blue    -> primary accent, CTAs, highlights
-// #112D4E  deep navy      -> dark bg, headings, strong text
-
+// Cinematic matte-black palette
 export const P = {
-  white:  "#F9F7F7",
-  silver: "#DBE2EF",
-  blue:   "#3F72AF",
-  navy:   "#112D4E",
-  // Derived
-  blueGlow:   "rgba(63,114,175,0.4)",
-  blueDim:    "#2d5a8e",
-  blueBright: "#5a8fc4",
-  navyDeep:   "#0a1e35",
-  success:    "#22c55e",
-  warning:    "#f59e0b",
-  error:      "#ef4444",
+  bg:       "#0a0a0a",
+  bgAlt:    "#111111",
+  card:     "rgba(255,255,255,0.03)",
+  border:   "rgba(255,255,255,0.07)",
+  accent:   "#ff6a3d",
+  accentDim:"rgba(255,106,61,0.18)",
+  accentGlow:"rgba(255,106,61,0.35)",
+  text:     "#f5f5f5",
+  textSub:  "rgba(255,255,255,0.5)",
+  textDim:  "rgba(255,255,255,0.25)",
+  // keep legacy aliases so existing code that imports P still works
+  white:    "#f5f5f5",
+  silver:   "rgba(255,255,255,0.5)",
+  blue:     "#ff6a3d",
+  navy:     "#0a0a0a",
+  blueGlow: "rgba(255,106,61,0.35)",
+  blueDim:  "#e55a2b",
+  blueBright:"#ff8a65",
+  navyDeep: "#050505",
+  success:  "#22c55e",
+  warning:  "#f59e0b",
+  error:    "#ef4444",
 };
 
 function buildTheme(mode) {
-  const isDark = mode === "dark";
-
+  // Always dark — the cinematic matte-black theme
   return createTheme({
     palette: {
-      mode,
-      primary:   { main: P.blue,   light: P.blueBright, dark: P.blueDim },
-      secondary: { main: P.silver, light: P.white,      dark: P.navy   },
-      background: {
-        default: isDark ? P.navy    : P.white,
-        paper:   isDark ? "rgba(17,45,78,0.88)" : "rgba(249,247,247,0.92)",
-      },
-      divider: isDark ? "rgba(63,114,175,0.18)" : "rgba(63,114,175,0.2)",
-      text: {
-        primary:   isDark ? P.white  : P.navy,
-        secondary: isDark ? P.silver : "#4a6080",
-      },
+      mode: "dark",
+      primary:   { main: P.accent, light: P.blueBright, dark: P.blueDim },
+      secondary: { main: "rgba(255,255,255,0.5)" },
+      background: { default: P.bg, paper: P.bgAlt },
+      divider: P.border,
+      text: { primary: P.text, secondary: P.textSub },
       success: { main: P.success },
       warning: { main: P.warning },
-      error:   { main: P.error   },
+      error:   { main: P.error },
     },
     typography: {
-      fontFamily: '"Inter", system-ui, sans-serif',
+      fontFamily: '"DM Sans", "Inter", system-ui, sans-serif',
       h1: { fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.05 },
-      h2: { fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.1  },
+      h2: { fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.1 },
       h3: { fontWeight: 800, letterSpacing: "-0.025em" },
-      h4: { fontWeight: 700, letterSpacing: "-0.02em"  },
+      h4: { fontWeight: 700, letterSpacing: "-0.02em" },
       h5: { fontWeight: 700 },
       h6: { fontWeight: 600 },
-      body1: { lineHeight: 1.7  },
+      body1: { lineHeight: 1.7 },
       body2: { lineHeight: 1.65 },
     },
     shape: { borderRadius: 12 },
@@ -67,19 +65,18 @@ function buildTheme(mode) {
           "*": { boxSizing: "border-box", margin: 0, padding: 0 },
           html: { scrollBehavior: "smooth" },
           body: {
-            background: isDark ? P.navy : P.white,
+            background: P.bg,
             overflowX: "hidden",
-            color: isDark ? P.white : P.navy,
-            transition: "background 0.4s ease, color 0.4s ease",
+            color: P.text,
+            fontFamily: '"DM Sans", "Inter", system-ui, sans-serif',
           },
-          "::selection": { background: "rgba(63,114,175,0.3)", color: "#fff" },
-          "::-webkit-scrollbar": { width: "4px" },
+          "::selection": { background: "rgba(255,106,61,0.25)", color: "#fff" },
+          "::-webkit-scrollbar": { width: "3px" },
           "::-webkit-scrollbar-track": { background: "transparent" },
           "::-webkit-scrollbar-thumb": {
-            background: isDark ? "rgba(63,114,175,0.3)" : "rgba(63,114,175,0.35)",
+            background: "rgba(255,106,61,0.2)",
             borderRadius: "2px",
           },
-          "::-webkit-scrollbar-thumb:hover": { background: "rgba(90,143,196,0.55)" },
         },
       },
       MuiButton: {
@@ -87,21 +84,20 @@ function buildTheme(mode) {
           root: {
             textTransform: "none", fontWeight: 700, borderRadius: 8,
             letterSpacing: "0.01em",
-            transition: "all 0.22s cubic-bezier(0.16,1,0.3,1)",
           },
           containedPrimary: {
-            background: `linear-gradient(135deg, ${P.blue} 0%, ${P.blueDim} 100%)`,
-            color: P.white,
-            boxShadow: `0 0 22px ${P.blueGlow}, 0 4px 14px rgba(0,0,0,0.25)`,
+            background: `linear-gradient(135deg, ${P.accent}, ${P.blueDim})`,
+            color: "#fff",
+            boxShadow: `0 0 22px ${P.accentGlow}`,
             "&:hover": {
-              background: `linear-gradient(135deg, ${P.blueBright} 0%, ${P.blue} 100%)`,
-              boxShadow: `0 0 38px rgba(63,114,175,0.55), 0 6px 20px rgba(0,0,0,0.3)`,
-              transform: "translateY(-2px)",
+              background: `linear-gradient(135deg, ${P.blueBright}, ${P.accent})`,
+              boxShadow: `0 0 38px rgba(255,106,61,0.5)`,
+              transform: "translateY(-1px)",
             },
           },
           outlinedPrimary: {
-            borderColor: "rgba(63,114,175,0.4)", color: P.blue,
-            "&:hover": { background: "rgba(63,114,175,0.08)", borderColor: P.blue },
+            borderColor: "rgba(255,106,61,0.3)", color: P.accent,
+            "&:hover": { background: P.accentDim, borderColor: P.accent },
           },
         },
       },
@@ -110,12 +106,9 @@ function buildTheme(mode) {
         styleOverrides: {
           root: {
             backgroundImage: "none",
-            background: isDark ? "rgba(17,45,78,0.85)" : "rgba(249,247,247,0.92)",
-            border: isDark
-              ? "1px solid rgba(63,114,175,0.18)"
-              : "1px solid rgba(63,114,175,0.22)",
+            background: P.card,
+            border: `1px solid ${P.border}`,
             backdropFilter: "blur(24px)",
-            boxShadow: isDark ? "none" : "0 4px 24px rgba(63,114,175,0.1)",
           },
         },
       },
@@ -123,28 +116,29 @@ function buildTheme(mode) {
         styleOverrides: {
           root: {
             "& .MuiOutlinedInput-root": {
-              background: isDark ? "rgba(63,114,175,0.06)" : "rgba(63,114,175,0.04)",
-              "& fieldset": {
-                borderColor: isDark ? "rgba(63,114,175,0.2)" : "rgba(63,114,175,0.25)",
-              },
-              "&:hover fieldset": { borderColor: "rgba(90,143,196,0.5)" },
+              background: "rgba(255,255,255,0.03)",
+              color: P.text,
+              "& fieldset": { borderColor: P.border },
+              "&:hover fieldset": { borderColor: "rgba(255,106,61,0.3)" },
               "&.Mui-focused fieldset": {
-                borderColor: P.blue,
-                boxShadow: "0 0 0 3px rgba(63,114,175,0.15)",
+                borderColor: P.accent,
+                boxShadow: `0 0 0 3px rgba(255,106,61,0.08)`,
               },
             },
-            "& .MuiInputLabel-root.Mui-focused": { color: P.blue },
+            "& .MuiInputLabel-root": { color: P.textSub },
+            "& .MuiInputLabel-root.Mui-focused": { color: P.accent },
+            "& .MuiInputBase-input": { color: P.text },
+            "& .MuiFormHelperText-root": { color: P.textDim },
           },
         },
       },
       MuiDivider: {
-        styleOverrides: {
-          root: {
-            borderColor: isDark ? "rgba(63,114,175,0.18)" : "rgba(63,114,175,0.2)",
-          },
-        },
+        styleOverrides: { root: { borderColor: P.border } },
       },
       MuiAlert: { styleOverrides: { root: { borderRadius: 10 } } },
+      MuiCircularProgress: {
+        styleOverrides: { root: { color: P.accent } },
+      },
     },
   });
 }
@@ -155,8 +149,8 @@ export function AppThemeProvider({ children }) {
   const muiTheme = useMemo(() => buildTheme(mode), [mode]);
 
   return (
-    <ThemeCtx.Provider value={{ mode, toggleMode }}>
-      {children(muiTheme, mode)}
+    <ThemeCtx.Provider value={{ mode: "dark", toggleMode }}>
+      {children(muiTheme, "dark")}
     </ThemeCtx.Provider>
   );
 }

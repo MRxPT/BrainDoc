@@ -8,8 +8,8 @@ export default function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress sx={{ color: "#6366f1" }} />
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh" sx={{ background: "#0a0a0a" }}>
+        <CircularProgress sx={{ color: "#ff6a3d" }} size={28} />
       </Box>
     );
   }

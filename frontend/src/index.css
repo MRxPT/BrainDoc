@@ -1,150 +1,168 @@
 @import "tailwindcss";
 
-/* Custom Tailwind utilities for the lamp component */
-@layer utilities {
-  .bg-gradient-conic {
-    background-image: conic-gradient(var(--tw-gradient-stops));
-  }
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ── CSS Design Tokens ── */
+:root {
+  --bg-primary:    #0a0a0a;
+  --bg-secondary:  #111111;
+  --bg-card:       #161616;
+  --card-bg:       rgba(22,22,22,0.7);
+  --card-border:   rgba(255,255,255,0.08);
+  --accent:        #ff6a3d;
+  --accent-glow:   rgba(255,106,61,0.15);
+  --accent-hover:  rgba(255,106,61,0.3);
+  --text-primary:  #f5f5f5;
+  --text-muted:    rgba(245,245,245,0.45);
+  --text-dim:      rgba(245,245,245,0.25);
+  --border:        rgba(255,255,255,0.08);
+  --border-accent: rgba(255,106,61,0.3);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth:   cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Radial Orbital Timeline — cinematic neural effects ── */
-@layer components {
-  .orbital-timeline-section {
-    --orbital-cyan: rgba(34, 211, 238, 0.55);
-    --orbital-purple: rgba(168, 85, 247, 0.4);
-    min-height: 520px;
-  }
+/* ── Global Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
 
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'DM Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Monospace elements */
+code, kbd, pre, .mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+::selection {
+  background: rgba(255,106,61,0.3);
+  color: #fff;
+}
+
+/* ── Focus rings ── */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,106,61,0.2); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,106,61,0.4); }
+
+/* ── Noise texture ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0.5;
+}
+
+/* ── Placeholder ── */
+textarea::placeholder, input::placeholder { color: rgba(255,255,255,0.18); }
+
+/* ── Grain overlay for glass cards ── */
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Skeleton loading ── */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+.skeleton {
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* ── Orbital timeline ── */
+@layer components {
+  .orbital-timeline-section { min-height: 520px; }
   .orbital-ambient-glow {
-    background: radial-gradient(
-      circle,
-      rgba(34, 211, 238, 0.12) 0%,
-      rgba(99, 102, 241, 0.08) 35%,
-      rgba(168, 85, 247, 0.05) 55%,
-      transparent 72%
-    );
+    background: radial-gradient(circle, rgba(255,106,61,0.06) 0%, transparent 72%);
     filter: blur(40px);
   }
-
   .orbital-glass-card {
     backdrop-filter: blur(28px);
-    box-shadow:
-      0 8px 40px rgba(0, 0, 0, 0.45),
-      0 0 60px rgba(34, 211, 238, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
   }
-
-  .orbital-ring-outer {
-    box-shadow:
-      0 0 30px rgba(34, 211, 238, 0.06),
-      inset 0 0 20px rgba(34, 211, 238, 0.03);
-  }
-
-  .orbital-ring-inner {
-    animation: orbit-spin-reverse 24s linear infinite;
-  }
-
+  .orbital-ring-inner { animation: orbit-spin-reverse 24s linear infinite; }
   .orbital-pulse-ring {
     animation: neural-pulse 2s ease-in-out infinite;
-    border: 1px solid var(--orbital-cyan);
+    border: 1px solid rgba(255,106,61,0.35);
     border-radius: inherit;
   }
-
-  .neural-icon-glow {
-    filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.7));
-  }
-
+  .neural-icon-glow { filter: drop-shadow(0 0 8px rgba(255,106,61,0.55)); }
   .connection-line-active {
     stroke-dasharray: 4 3;
     animation: connection-flow 1.5s linear infinite;
   }
 }
 
-@keyframes orbit-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes orbit-spin-reverse {
-  from { transform: rotate(360deg); }
-  to { transform: rotate(0deg); }
-}
-
+@keyframes orbit-spin-reverse { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
 @keyframes neural-pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.6;
-    box-shadow: 0 0 12px rgba(34, 211, 238, 0.3);
-  }
-  50% {
-    transform: scale(1.35);
-    opacity: 0;
-    box-shadow: 0 0 24px rgba(34, 211, 238, 0.6);
-  }
+  0%,100% { transform: scale(1); opacity: 0.5; box-shadow: 0 0 12px rgba(255,106,61,0.25); }
+  50% { transform: scale(1.35); opacity: 0; box-shadow: 0 0 24px rgba(255,106,61,0.5); }
 }
-
 @keyframes connection-flow {
   0% { stroke-dashoffset: 0; opacity: 0.5; }
   50% { opacity: 1; }
   100% { stroke-dashoffset: -14; opacity: 0.5; }
 }
 
-@keyframes glow-breathe {
-  0%, 100% { opacity: 0.35; filter: blur(32px); }
-  50% { opacity: 0.65; filter: blur(48px); }
-}
-
-@keyframes float-node {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .orbital-ring-inner,
-  .orbital-pulse-ring,
-  .connection-line-active,
-  .footer-orb-ring-outer,
-  .footer-orb-ring-inner {
-    animation: none !important;
-  }
-}
-
-/* ── Personal Landing / Neural Footer (BrainDoc theme) ── */
+/* ── Footer ── */
 @layer components {
-  .footer-neural-section {
-    background: transparent;
-  }
-
-  .footer-ambient-glow {
-    pointer-events: none;
-  }
-
-  .footer-glass-panel {
-    position: relative;
-    overflow: hidden;
-  }
-
   .footer-social-btn:hover {
-    box-shadow: 0 0 20px rgba(63, 114, 175, 0.3);
-    border-color: rgba(63, 114, 175, 0.45) !important;
-    background: rgba(63, 114, 175, 0.12) !important;
+    box-shadow: 0 0 20px rgba(255,106,61,0.18) !important;
+    border-color: rgba(255,106,61,0.28) !important;
+    background: rgba(255,106,61,0.06) !important;
   }
-
-  .footer-social-btn:hover svg {
-    color: #5a8fc4 !important;
-  }
-
   .footer-input:focus {
-    border-color: rgba(63, 114, 175, 0.5) !important;
-    box-shadow: 0 0 20px rgba(63, 114, 175, 0.15);
+    border-color: rgba(255,106,61,0.4) !important;
+    box-shadow: 0 0 20px rgba(255,106,61,0.1);
   }
-
-  .footer-input {
-    backdrop-filter: blur(8px);
-  }
+  .footer-input { backdrop-filter: blur(8px); }
 }
 
-@keyframes footer-orb-pulse {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
+/* ── Sidebar active state ── */
+.sidebar-item-active {
+  border-left: 2px solid var(--accent) !important;
+  background: rgba(255,106,61,0.06) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── Toast ── */
+.toast-notification {
+  background: rgba(22,22,22,0.95);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-left: 3px solid var(--accent);
+  backdrop-filter: blur(20px);
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+}
+
+/* ── Reduce motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .orbital-ring-inner, .orbital-pulse-ring, .connection-line-active { animation: none !important; }
 }

@@ -1,18 +1,43 @@
 import React, { useState } from "react";
-import { Box, TextField, Typography, Alert, Grid } from "@mui/material";
+import { Box, Typography, TextField, Alert, Grid } from "@mui/material";
 import { motion } from "framer-motion";
-import { PersonOutlined, EmailOutlined, CalendarTodayOutlined, EditOutlined, SaveOutlined, CancelOutlined } from "@mui/icons-material";
+import {
+  PersonOutlined, EmailOutlined, CalendarTodayOutlined,
+  EditOutlined, SaveOutlined, CancelOutlined,
+  ChatOutlined, UploadFileOutlined, SettingsOutlined, InsertDriveFileOutlined, SearchOutlined,
+} from "@mui/icons-material";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useAppTheme } from "../context/ThemeContext";
 import { updateMe } from "../api/auth";
+import { GlassCard, MetricCard, SidebarNav, NeonBadge, AvatarCircle } from "../components/ui/design-system";
 
-function InfoRow({ icon, label, value, isDark }) {
+const A = "#ff6a3d";
+
+const NAV_ITEMS = [
+  { id: "/dashboard", label: "Profile",  icon: <PersonOutlined sx={{ fontSize: 17 }} /> },
+  { id: "/chat",      label: "Chat",     icon: <ChatOutlined sx={{ fontSize: 17 }} /> },
+  { id: "/settings",  label: "Settings", icon: <SettingsOutlined sx={{ fontSize: 17 }} /> },
+];
+
+const METRICS = [
+  { icon: <InsertDriveFileOutlined sx={{ fontSize: 18 }} />, label: "Total Documents", value: "—",  trend: null },
+  { icon: <ChatOutlined sx={{ fontSize: 18 }} />,            label: "Queries Today",   value: "—",  trend: null },
+  { icon: <SearchOutlined sx={{ fontSize: 18 }} />,          label: "Embeddings",      value: "RAG", trend: null },
+  { icon: <UploadFileOutlined sx={{ fontSize: 18 }} />,      label: "Avg Response",    value: "<1s", trend: null, trendUp: true },
+];
+
+function InfoRow({ icon, label, value }) {
   return (
-    <Box display="flex" alignItems="center" gap={1.5} py={1.25} sx={{ borderBottom: "1px solid rgba(63,114,175,0.07)" }}>
-      <Box sx={{ color: "rgba(63,114,175,0.35)", display: "flex" }}>{icon}</Box>
-      <Box>
-        <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", color: isDark ? "rgba(90,120,160,0.4)" : "rgba(17,45,78,0.4)", textTransform: "uppercase" }}>{label}</Typography>
-        <Typography sx={{ fontSize: "0.85rem", color: isDark ? "rgba(240,246,255,0.8)" : "rgba(17,45,78,0.85)" }}>{value}</Typography>
+    <Box display="flex" alignItems="center" gap={1.5} py={1.4}
+      sx={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+      <Box sx={{ color: "rgba(255,106,61,0.35)", display: "flex", flexShrink: 0 }}>{icon}</Box>
+      <Box minWidth={0}>
+        <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>
+          {label}
+        </Typography>
+        <Typography sx={{ fontSize: "0.84rem", color: "rgba(255,255,255,0.7)", fontFamily: label === "Email" ? "'JetBrains Mono', monospace" : "inherit" }} noWrap>
+          {value || "—"}
+        </Typography>
       </Box>
     </Box>
   );
@@ -20,8 +45,8 @@ function InfoRow({ icon, label, value, isDark }) {
 
 export default function DashboardPage() {
   const { user, loginUser } = useAuth();
-  const { mode } = useAppTheme();
-  const isDark = mode === "dark";
+  const navigate = useNavigate();
+  const location = useLocation();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ username: user?.username || "" });
   const [success, setSuccess] = useState("");
@@ -34,110 +59,220 @@ export default function DashboardPage() {
       const { data } = await updateMe({ username: form.username });
       loginUser(localStorage.getItem("token"), data);
       setSuccess("Profile updated!"); setEditing(false);
-    } catch (err) { setError(err.response?.data?.detail || "Update failed."); }
-    finally { setLoading(false); }
+    } catch (err) {
+      setError(err.response?.data?.detail || "Update failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const fmt = (d) => new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-
-  const cardBg = isDark ? "rgba(17,45,78,0.82)" : "rgba(249,247,247,0.95)";
-  const cardBorder = isDark ? "rgba(63,114,175,0.12)" : "rgba(63,114,175,0.18)";
-  const shimmerBg = isDark ? "rgba(63,114,175,0.35)" : "rgba(63,114,175,0.25)";
+  const fmt = (d) => d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—";
 
   return (
-    <Box sx={{ position: "relative", zIndex: 1, minHeight: "calc(100vh - 56px)", py: 6, px: 2 }}>
-      <Box sx={{ maxWidth: 860, mx: "auto" }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
-          <Typography variant="h4" fontWeight={800} mb={0.5}
-            sx={{ color: isDark ? "#F9F7F7" : "#112D4E", transition: "color 0.4s" }}
-          >Profile</Typography>
-          <Typography sx={{ color: isDark ? "rgba(219,226,239,0.5)" : "rgba(17,45,78,0.5)", mb: 5, fontSize: "0.88rem", transition: "color 0.4s" }}>Manage your account</Typography>
+    <Box sx={{
+      display: "flex", minHeight: "calc(100vh - 56px)",
+      position: "relative", zIndex: 1, background: "#0a0a0a",
+    }}>
+      {/* ── Left Sidebar ── */}
+      <Box sx={{
+        width: 240, flexShrink: 0,
+        borderRight: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(14,14,14,0.8)", backdropFilter: "blur(20px)",
+        display: "flex", flexDirection: "column",
+        position: "sticky", top: 56, height: "calc(100vh - 56px)",
+      }}>
+        {/* Sidebar header */}
+        <Box sx={{ px: 3, pt: 4, pb: 3, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", mb: 2 }}>
+            Workspace
+          </Typography>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <AvatarCircle name={user?.username || "U"} size={34} showStatus />
+            <Box minWidth={0}>
+              <Typography sx={{ fontSize: "0.84rem", fontWeight: 700, color: "#f5f5f5" }} noWrap>
+                {user?.username || "User"}
+              </Typography>
+              <NeonBadge color="green" size="xs">Active</NeonBadge>
+            </Box>
+          </Box>
+        </Box>
 
+        {/* Nav */}
+        <Box sx={{ px: 2, pt: 2.5, flex: 1 }}>
+          <SidebarNav
+            items={NAV_ITEMS}
+            active={location.pathname}
+            onSelect={(id) => navigate(id)}
+          />
+        </Box>
+
+        {/* Bottom */}
+        <Box sx={{ px: 3, py: 3, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <NeonBadge color="orange">Free Plan</NeonBadge>
+        </Box>
+      </Box>
+
+      {/* ── Main Content ── */}
+      <Box sx={{ flex: 1, overflow: "auto", p: { xs: 3, md: 5 } }}>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
+
+          {/* Page header */}
+          <Box mb={6}>
+            <Typography sx={{
+              fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.14em",
+              color: "rgba(255,106,61,0.5)", textTransform: "uppercase", mb: 0.75,
+            }}>
+              Profile Overview
+            </Typography>
+            <Typography variant="h4" fontWeight={800} sx={{
+              color: "#f5f5f5", letterSpacing: "-0.03em",
+              fontFamily: "'DM Sans', Inter, sans-serif",
+            }}>
+              Good to see you, <Box component="span" sx={{ color: A }}>{user?.username || "there"}</Box>
+            </Typography>
+            <Typography sx={{ color: "rgba(255,255,255,0.25)", fontSize: "0.875rem", mt: 0.75 }}>
+              {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            </Typography>
+          </Box>
+
+          {/* Metric cards */}
+          <Grid container spacing={2} mb={5}>
+            {METRICS.map((m, i) => (
+              <Grid item xs={12} sm={6} xl={3} key={i}>
+                <MetricCard {...m} delay={i * 0.06} />
+              </Grid>
+            ))}
+          </Grid>
+
+          {/* Profile cards */}
           <Grid container spacing={3}>
-            {/* Profile card */}
+            {/* Identity card */}
             <Grid item xs={12} md={4}>
-              <Box sx={{ background: cardBg, backdropFilter: "blur(32px)", border: `1px solid ${cardBorder}`, borderRadius: "20px", p: 3, position: "relative", overflow: "hidden", transition: "background 0.4s, border-color 0.4s", boxShadow: isDark ? "none" : "0 4px 24px rgba(63,114,175,0.08)" }}>
-                <Box sx={{ position: "absolute", top: 0, left: "8%", right: "8%", height: 1, background: `linear-gradient(90deg,transparent,${shimmerBg},transparent)` }} />
-
-                <Box textAlign="center" mb={3}>
-                  <motion.div whileHover={{ scale: 1.05 }} style={{ display: "inline-block" }}>
-                    <Box sx={{
-                      width: 72, height: 72, borderRadius: "18px", mx: "auto", mb: 1.5,
-                      background: "linear-gradient(135deg,#3F72AF,#112D4E)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "1.8rem", fontWeight: 900, color: "#F9F7F7",
-                      boxShadow: "0 0 30px rgba(63,114,175,0.35)",
-                    }}>
-                      {user?.username?.[0]?.toUpperCase()}
-                    </Box>
-                  </motion.div>
-                  <Typography variant="h6" fontWeight={800} sx={{ color: isDark ? "#F9F7F7" : "#112D4E" }}>{user?.username}</Typography>
-                  <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.6, mt: 0.5, px: 1.5, py: 0.3, borderRadius: "100px", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}>
-                    <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
-                    <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: "#22c55e" }}>Active</Typography>
+              <GlassCard hover={false} sx={{ height: "100%" }}>
+                <Box p={3.5}>
+                  <Box textAlign="center" mb={3.5}>
+                    <motion.div whileHover={{ scale: 1.04 }} style={{ display: "inline-block", marginBottom: 12 }}>
+                      <AvatarCircle name={user?.username || "U"} size={72} showStatus />
+                    </motion.div>
+                    <Typography variant="h6" fontWeight={700} sx={{ color: "#f5f5f5", fontSize: "1rem", mt: 1.5 }}>
+                      {user?.username}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)", mt: 0.4, fontFamily: "'JetBrains Mono', monospace" }}>
+                      {user?.email}
+                    </Typography>
                   </Box>
+                  <InfoRow icon={<PersonOutlined sx={{ fontSize: 14 }} />} label="Username" value={user?.username} />
+                  <InfoRow icon={<EmailOutlined sx={{ fontSize: 14 }} />}   label="Email"    value={user?.email} />
+                  <InfoRow icon={<CalendarTodayOutlined sx={{ fontSize: 14 }} />} label="Joined" value={fmt(user?.created_at)} />
                 </Box>
-
-                <InfoRow icon={<PersonOutlined sx={{ fontSize: 15 }} />} label="Username" value={user?.username} isDark={isDark} />
-                <InfoRow icon={<EmailOutlined sx={{ fontSize: 15 }} />} label="Email" value={user?.email} isDark={isDark} />
-                <InfoRow icon={<CalendarTodayOutlined sx={{ fontSize: 15 }} />} label="Joined" value={user?.created_at ? fmt(user.created_at) : "-"} isDark={isDark} />
-              </Box>
+              </GlassCard>
             </Grid>
 
-            {/* Edit card */}
+            {/* Edit panel */}
             <Grid item xs={12} md={8}>
-              <Box sx={{ background: cardBg, backdropFilter: "blur(32px)", border: `1px solid ${cardBorder}`, borderRadius: "20px", p: 3, position: "relative", overflow: "hidden", mb: 2, transition: "background 0.4s, border-color 0.4s", boxShadow: isDark ? "none" : "0 4px 24px rgba(63,114,175,0.08)" }}>
-                <Box sx={{ position: "absolute", top: 0, left: "8%", right: "8%", height: 1, background: `linear-gradient(90deg,transparent,${shimmerBg},transparent)` }} />
+              <GlassCard hover={false} sx={{ mb: 2.5 }}>
+                <Box p={3.5}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                    <Box>
+                      <Typography variant="h6" fontWeight={700} sx={{ color: "#f5f5f5", fontSize: "0.95rem" }}>Edit Profile</Typography>
+                      <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)", mt: 0.25 }}>Update your display name</Typography>
+                    </Box>
+                    {!editing && (
+                      <motion.button
+                        whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                        onClick={() => setEditing(true)}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          padding: "7px 15px", borderRadius: 8,
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          background: "rgba(255,255,255,0.03)",
+                          color: "rgba(255,255,255,0.45)",
+                          fontWeight: 600, fontSize: "0.8rem",
+                          cursor: "pointer", fontFamily: "'DM Sans', Inter, sans-serif",
+                          transition: "all 0.15s",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,106,61,0.3)"; e.currentTarget.style.color = A; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
+                      >
+                        <EditOutlined style={{ fontSize: 13 }} /> Edit
+                      </motion.button>
+                    )}
+                  </Box>
 
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                  <Typography variant="h6" fontWeight={700} sx={{ color: isDark ? "#F9F7F7" : "#112D4E" }}>Edit Profile</Typography>
-                  {!editing && (
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                      onClick={() => setEditing(true)}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 7, border: "1px solid rgba(63,114,175,0.2)", background: "rgba(63,114,175,0.07)", color: "#3F72AF", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", fontFamily: "Inter,sans-serif" }}>
-                      <EditOutlined style={{ fontSize: 14 }} /> Edit
-                    </motion.button>
+                  {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSuccess("")}>{success}</Alert>}
+                  {error   && <Alert severity="error"   sx={{ mb: 2, borderRadius: 2, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5" }} onClose={() => setError("")}>{error}</Alert>}
+
+                  <TextField
+                    label="Username" value={editing ? form.username : user?.username || ""}
+                    onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
+                    fullWidth disabled={!editing} margin="normal"
+                  />
+                  <TextField
+                    label="Email" value={user?.email || ""} fullWidth disabled margin="normal"
+                    helperText="Email cannot be changed after signup"
+                  />
+
+                  {editing && (
+                    <Box display="flex" gap={1.5} mt={2.5}>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                        onClick={handleSave} disabled={loading}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "9px 22px", borderRadius: 9, border: "none",
+                          background: A, color: "#fff",
+                          fontWeight: 700, fontSize: "0.85rem",
+                          cursor: "pointer", fontFamily: "'DM Sans', Inter, sans-serif",
+                          boxShadow: "0 0 18px rgba(255,106,61,0.25)",
+                        }}>
+                        <SaveOutlined style={{ fontSize: 14 }} />
+                        {loading ? "Saving..." : "Save changes"}
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                        onClick={() => { setEditing(false); setForm({ username: user?.username }); setError(""); }}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "9px 22px", borderRadius: 9,
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          background: "transparent",
+                          color: "rgba(255,255,255,0.35)",
+                          fontWeight: 500, fontSize: "0.85rem",
+                          cursor: "pointer", fontFamily: "'DM Sans', Inter, sans-serif",
+                        }}>
+                        <CancelOutlined style={{ fontSize: 14 }} /> Cancel
+                      </motion.button>
+                    </Box>
                   )}
                 </Box>
+              </GlassCard>
 
-                {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSuccess("")}>{success}</Alert>}
-                {error   && <Alert severity="error"   sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError("")}>{error}</Alert>}
-
-                <TextField label="Username" value={editing ? form.username : user?.username}
-                  onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
-                  fullWidth disabled={!editing} margin="normal" />
-                <TextField label="Email" value={user?.email} fullWidth disabled margin="normal" helperText="Email cannot be changed" />
-
-                {editing && (
-                  <Box display="flex" gap={1.5} mt={2}>
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      onClick={handleSave} disabled={loading}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 20px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#3F72AF,#2d5a8e)", color: "#fff", fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "Inter,sans-serif" }}>
-                      <SaveOutlined style={{ fontSize: 15 }} /> {loading ? "Saving..." : "Save"}
-                    </motion.button>
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      onClick={() => { setEditing(false); setForm({ username: user?.username }); setError(""); }}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 20px", borderRadius: 8, border: `1px solid rgba(63,114,175,0.18)`, background: "transparent", color: isDark ? "rgba(255,255,255,0.5)" : "rgba(17,45,78,0.5)", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", fontFamily: "Inter,sans-serif" }}>
-                      <CancelOutlined style={{ fontSize: 15 }} /> Cancel
-                    </motion.button>
-                  </Box>
-                )}
-              </Box>
-
-              {/* Stats */}
-              <Box sx={{ background: cardBg, backdropFilter: "blur(32px)", border: `1px solid ${cardBorder}`, borderRadius: "20px", p: 3, transition: "background 0.4s, border-color 0.4s", boxShadow: isDark ? "none" : "0 4px 24px rgba(63,114,175,0.08)" }}>
-                <Typography sx={{ fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.12em", color: "rgba(63,114,175,0.4)", textTransform: "uppercase", mb: 2 }}>Account Info</Typography>
-                <Grid container spacing={2}>
-                  {[{ label: "Auth", value: "JWT" }, { label: "Status", value: "Active" }].map((s) => (
-                    <Grid item xs={6} key={s.label}>
-                      <Box sx={{ p: 2, borderRadius: "12px", background: isDark ? "rgba(63,114,175,0.04)" : "rgba(63,114,175,0.06)", border: "1px solid rgba(63,114,175,0.1)", textAlign: "center" }}>
-                        <Typography sx={{ fontSize: "1.5rem", fontWeight: 900, color: "#3F72AF", letterSpacing: "-0.03em" }}>{s.value}</Typography>
-                        <Typography sx={{ fontSize: "0.7rem", color: isDark ? "rgba(90,120,160,0.4)" : "rgba(17,45,78,0.4)", mt: 0.25 }}>{s.label}</Typography>
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
+              {/* Account info */}
+              <GlassCard hover={false}>
+                <Box p={3.5}>
+                  <Typography sx={{ fontSize: "0.6rem", fontWeight: 800, letterSpacing: "0.14em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", mb: 2.5 }}>
+                    Account Details
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {[
+                      { label: "Auth Method", value: "JWT" },
+                      { label: "Account Status", value: "Active" },
+                    ].map((s) => (
+                      <Grid item xs={6} key={s.label}>
+                        <Box sx={{
+                          p: 2.5, borderRadius: "12px", textAlign: "center",
+                          background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
+                        }}>
+                          <Typography sx={{ fontSize: "1.35rem", fontWeight: 800, color: A, letterSpacing: "-0.03em", fontFamily: "'JetBrains Mono', monospace" }}>
+                            {s.value}
+                          </Typography>
+                          <Typography sx={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.2)", mt: 0.5 }}>
+                            {s.label}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              </GlassCard>
             </Grid>
           </Grid>
         </motion.div>

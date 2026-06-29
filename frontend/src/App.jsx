@@ -16,14 +16,14 @@ import SettingsPage from "./pages/SettingsPage";
 export default function App() {
   return (
     <AppThemeProvider>
-      {(muiTheme, mode) => (
+      {(muiTheme) => (
         <ThemeProvider theme={muiTheme}>
           <CssBaseline />
-          <NeuralBackground mode={mode} />
+          <NeuralBackground />
           <Navbar />
           <Box sx={{ position: "relative", zIndex: 1, pt: "56px" }}>
             <Routes>
-              <Route path="/" element={<Box sx={{ pt: 0 }}><HomePage /></Box>} />
+              <Route path="/"          element={<HomePage />} />
               <Route path="/login"     element={<LoginPage />} />
               <Route path="/signup"    element={<SignupPage />} />
               <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

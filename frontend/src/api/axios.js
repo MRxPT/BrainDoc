@@ -3,6 +3,7 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: "https://braindoc.onrender.com/api",
+  timeout: 30000, // 30 second timeout — shows error instead of hanging forever
   headers: {
     "Content-Type": "application/json",
   },
@@ -26,6 +27,13 @@ api.interceptors.response.use(
     const isAuthEndpoint =
       url.includes("/auth/login") ||
       url.includes("/auth/signup");
+
+    // Handle timeout specifically
+    if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+      return Promise.reject(
+        new Error("Server is starting up, please wait a moment and try again.")
+      );
+    }
 
     if (error.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem("token");

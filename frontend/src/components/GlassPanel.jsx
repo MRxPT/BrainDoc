@@ -4,15 +4,13 @@ import { motion } from "framer-motion";
 
 export default function GlassPanel({ children, sx = {}, glow = false, animate = true, ...props }) {
   const base = {
-    background: "rgba(6,11,20,0.7)",
+    background: "rgba(255,255,255,0.025)",
     backdropFilter: "blur(24px)",
-    border: "1px solid rgba(63,114,175,0.12)",
+    border: "1px solid rgba(255,255,255,0.07)",
     borderRadius: "16px",
     position: "relative",
     overflow: "hidden",
-    ...(glow && {
-      boxShadow: "0 0 40px rgba(63,114,175,0.08), inset 0 1px 0 rgba(63,114,175,0.1)",
-    }),
+    ...(glow && { boxShadow: "0 0 40px rgba(255,106,61,0.06), inset 0 1px 0 rgba(255,106,61,0.08)" }),
     ...sx,
   };
 
@@ -26,14 +24,12 @@ export default function GlassPanel({ children, sx = {}, glow = false, animate = 
       style={{ ...base }}
       {...props}
     >
-      {/* Top edge glow */}
       <Box sx={{
         position: "absolute", top: 0, left: "10%", right: "10%", height: "1px",
-        background: "linear-gradient(90deg, transparent, rgba(63,114,175,0.4), transparent)",
+        background: "linear-gradient(90deg, transparent, rgba(255,106,61,0.2), transparent)",
         pointerEvents: "none",
       }} />
       {children}
     </motion.div>
   );
 }
-
