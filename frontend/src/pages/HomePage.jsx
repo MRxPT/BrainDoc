@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   Zap, Shield, Search, Brain, FileText, BarChart3,
   ChevronRight, Check, Star, Plus, Minus, ArrowRight,
-  Upload, MessageSquare, Cpu, Lock, Globe, TrendingUp,
+  Upload, MessageSquare, Cpu, Lock, Globe, TrendingUp, Key,
 } from "lucide-react";
 
 const EASE = [0.22, 0.61, 0.36, 1];
@@ -261,26 +261,6 @@ function HeroSection({ navigate, user }) {
             </button>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            style={{ marginTop: 40, display: "flex", alignItems: "center", gap: 20 }}
-          >
-            <div style={{ display: "flex" }}>
-              {["#6366f1","#ec4899","#f59e0b","#10b981","#2563eb"].map((c, i) => (
-                <div key={i} style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: "2px solid #fff", marginLeft: i > 0 ? -8 : 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: 10, color: "#fff", fontWeight: 700 }}>{String.fromCharCode(65 + i)}</span>
-                </div>
-              ))}
-            </div>
-            <div>
-              <div style={{ display: "flex", gap: 2, marginBottom: 2 }}>
-                {[1,2,3,4,5].map(i => <Star key={i} size={13} fill="#f59e0b" color="#f59e0b" />)}
-              </div>
-              <span style={{ fontSize: 13, color: "#64748b" }}>Trusted by <strong style={{ color: "#0f172a" }}>2,400+</strong> researchers & analysts</span>
-            </div>
-          </motion.div>
         </div>
 
         {/* Right */}
@@ -292,24 +272,30 @@ function HeroSection({ navigate, user }) {
   );
 }
 
-/* ── Logo Cloud ───────────────────────────────────────────────────── */
-function LogoCloud() {
-  const logos = ["Notion","Linear","Vercel","Stripe","OpenAI","Figma","Anthropic","Perplexity"];
+/* ── Tech Stack Section ───────────────────────────────────────────── */
+function TechStackSection() {
+  const tech = [
+    { name: "FastAPI", desc: "High-performance Python backend API" },
+    { name: "FAISS", desc: "Facebook AI Similarity Search for semantic vector retrieval" },
+    { name: "ONNX Runtime", desc: "Ultra-fast local embeddings and ONNX-powered fastembed" },
+    { name: "React", desc: "Interactive, fluid, responsive user interface" },
+    { name: "Tesseract OCR", desc: "Accurate optical character recognition for scanned PDFs" }
+  ];
   return (
     <section style={{ padding: "60px 0", borderTop: "1px solid #f1f5f9", borderBottom: "1px solid #f1f5f9", background: "#fafbfc" }}>
       <div className="container-xl">
         <p style={{ textAlign: "center", fontSize: 13, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 36 }}>
-          Loved by teams at
+          Powered by Open Source & Modern Tech Stack
         </p>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 48 }}>
-          {logos.map((name) => (
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: "24px 48px" }}>
+          {tech.map((t) => (
             <motion.div
-              key={name}
+              key={t.name}
               whileHover={{ scale: 1.05 }}
-              className="logo-item"
-              style={{ cursor: "default" }}
+              style={{ cursor: "default", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}
             >
-              <span style={{ fontSize: 16, fontWeight: 700, color: "#64748b", letterSpacing: "-0.02em" }}>{name}</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "#475569", letterSpacing: "-0.02em" }}>{t.name}</span>
+              <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{t.desc}</span>
             </motion.div>
           ))}
         </div>
@@ -318,20 +304,19 @@ function LogoCloud() {
   );
 }
 
-/* ── Stats Section ────────────────────────────────────────────────── */
-function StatsSection() {
-  const stats = [
-    { label: "Documents Analyzed",  val: 2847000, suffix: "+", prefix: "" },
-    { label: "Enterprise Users",    val: 100,     suffix: "+", prefix: "" },
-    { label: "Uptime SLA",          val: 99,      suffix: ".9%",prefix:""},
-    { label: "Avg User Rating",     val: 49,      suffix: "★",  prefix:"" },
+/* ── Free Benefits Section ────────────────────────────────────────── */
+function FreeBenefitsSection() {
+  const benefits = [
+    { icon: <Zap size={28} color="#2563eb" />, title: "100% Free", desc: "No subscriptions, paywalls, or hidden charges. Completely free AI." },
+    { icon: <Lock size={28} color="#2563eb" />, title: "Privacy First", desc: "In-memory processing. Your documents are never stored to disk." },
+    { icon: <Cpu size={28} color="#2563eb" />, title: "Sub-100ms Search", desc: "Optimized with FAISS local semantic indexes for instant retrieval." },
+    { icon: <Key size={28} color="#2563eb" />, title: "Flexible Models", desc: "Bring your own keys to run Groq, Gemini, OpenAI, or local ONNX engines." }
   ];
-  const display = ["2.8M+","100+","99.9%","4.9★"];
   return (
-    <section style={{ padding: "120px 0", background: "#fff" }}>
+    <section style={{ padding: "100px 0", background: "#fff" }}>
       <div className="container-xl">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
-          {stats.map((s, i) => (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
+          {benefits.map((b, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 24 }}
@@ -339,14 +324,19 @@ function StatsSection() {
               viewport={{ once: true }}
               transition={{ delay: i * 0.1, duration: 0.6, ease: EASE }}
               style={{
-                textAlign: "center", padding: "48px 32px",
-                borderRight: i < 3 ? "1px solid #f1f5f9" : "none",
+                textAlign: "center", padding: "40px 24px",
+                border: "1px solid #f1f5f9", borderRadius: 24,
+                background: "#fafbfc",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                display: "flex", flexDirection: "column", alignItems: "center"
               }}
+              whileHover={{ y: -6, borderColor: "#cbd5e1", boxShadow: "0 12px 30px rgba(0,0,0,0.04)" }}
             >
-              <div style={{ fontSize: "clamp(40px,4vw,56px)", fontWeight: 900, letterSpacing: "-0.04em", background: "linear-gradient(135deg,#2563eb,#7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.1, marginBottom: 8 }}>
-                {display[i]}
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(37,99,235,0.06)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+                {b.icon}
               </div>
-              <div style={{ fontSize: 15, color: "#64748b", fontWeight: 500 }}>{s.label}</div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>{b.title}</h3>
+              <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>{b.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -486,158 +476,6 @@ function UseCasesSection() {
               <span style={{ fontSize: 28, display: "block", marginBottom: 14 }}>{c.icon}</span>
               <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", marginBottom: 8, letterSpacing: "-0.02em" }}>{c.title}</h3>
               <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>{c.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Testimonials ─────────────────────────────────────────────────── */
-function TestimonialsSection() {
-  const testimonials = [
-    { name: "Sarah Chen", role: "Research Scientist, BioLab", quote: "BrainDoc completely changed how I read papers. I can ask it questions instead of ctrl-F-ing for hours. The accuracy is genuinely impressive.", stars: 5 },
-    { name: "Marcus Reid", role: "M&A Analyst, Summit Capital", quote: "We review 50+ contracts a month. BrainDoc cuts that time in half. The zero-hallucination guarantee is critical for our use case.", stars: 5 },
-    { name: "Priya Nair", role: "Product Manager, Techflow", quote: "I use it for competitor analysis reports. The multi-turn chat means I can dig deeper and deeper without losing context. It's like having a brilliant intern.", stars: 5 },
-    { name: "James Wolff", role: "PhD Student, MIT", quote: "This is the tool I wish existed years ago. Uploading 200-page dissertations and asking targeted questions — the retrieval is genuinely semantic, not keyword matching.", stars: 5 },
-    { name: "Elena Vasquez", role: "Legal Counsel, NovaCorp", quote: "Contract review went from 4 hours to 40 minutes. The citations in responses mean I can verify everything in seconds. Brilliant product.", stars: 5 },
-    { name: "David Kim", role: "Consultant, Deloitte", quote: "Every engagement involves massive reports. BrainDoc lets me extract the exact insights my clients need without reading 300 pages. Game-changer.", stars: 5 },
-  ];
-  return (
-    <section style={{ padding: "160px 0", background: "#fff" }}>
-      <div className="container-xl">
-        <div style={{ textAlign: "center", marginBottom: 80 }}>
-          <Badge>Testimonials</Badge>
-          <motion.h2 className="section-title" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: EASE }}>
-            Loved by knowledge workers
-          </motion.h2>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24 }}>
-          {testimonials.map((t, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08, duration: 0.55, ease: EASE }}
-              whileHover={{ y: -6, boxShadow: "0 16px 48px rgba(0,0,0,0.1)" }}
-              style={{ background: "#fff", borderRadius: 28, border: "1px solid #e2e8f0", padding: 36, boxShadow: "0 1px 3px rgba(0,0,0,0.05)", transition: "all 0.3s" }}
-            >
-              <div style={{ display: "flex", gap: 2, marginBottom: 20 }}>
-                {[1,2,3,4,5].map(s => <Star key={s} size={14} fill="#f59e0b" color="#f59e0b" />)}
-              </div>
-              <p style={{ fontSize: 15, color: "#334155", lineHeight: 1.7, marginBottom: 24, fontStyle: "italic" }}>"{t.quote}"</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: `linear-gradient(135deg,${["#6366f1","#ec4899","#f59e0b","#10b981","#2563eb","#7c3aed"][i % 6]},${["#8b5cf6","#f43f5e","#ef4444","#0ea5e9","#7c3aed","#2563eb"][i % 6]})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{t.name[0]}</span>
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{t.name}</div>
-                  <div style={{ fontSize: 12, color: "#94a3b8" }}>{t.role}</div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Pricing ──────────────────────────────────────────────────────── */
-function PricingSection() {
-  const plans = [
-    {
-      name: "Starter", price: "Free", period: "",
-      desc: "Perfect for individuals and researchers.",
-      features: ["5 documents/month", "50 queries/month", "Local AI (Brain Core)", "Standard support"],
-      cta: "Get started free", highlight: false,
-    },
-    {
-      name: "Pro", price: "$19", period: "/month",
-      desc: "For power users who need unlimited access.",
-      features: ["Unlimited documents", "Unlimited queries", "Groq / Gemini / OpenAI", "Priority support", "API access", "Advanced analytics"],
-      cta: "Start Pro trial", highlight: true,
-    },
-    {
-      name: "Enterprise", price: "Custom", period: "",
-      desc: "For teams and organizations at scale.",
-      features: ["Everything in Pro", "SSO / SAML", "Dedicated infrastructure", "SLA guarantee", "Custom integrations", "Dedicated success manager"],
-      cta: "Contact sales", highlight: false,
-    },
-  ];
-  return (
-    <section id="pricing" style={{ padding: "160px 0", background: "#fafbfc" }}>
-      <div className="container-xl">
-        <div style={{ textAlign: "center", marginBottom: 80 }}>
-          <Badge>Pricing</Badge>
-          <motion.h2 className="section-title" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: EASE }} style={{ marginBottom: 16 }}>
-            Simple, transparent pricing
-          </motion.h2>
-          <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.1 }} style={{ fontSize: 18, color: "#64748b" }}>
-            Start free. Scale when you're ready.
-          </motion.p>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24, alignItems: "stretch" }}>
-          {plans.map((p, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 28 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.6, ease: EASE }}
-              style={{
-                background: p.highlight ? "#0f172a" : "#fff",
-                borderRadius: 32,
-                border: p.highlight ? "none" : "1px solid #e2e8f0",
-                padding: 40,
-                boxShadow: p.highlight ? "0 24px 80px rgba(15,23,42,0.25)" : "0 1px 3px rgba(0,0,0,0.05)",
-                position: "relative",
-                overflow: "hidden",
-                transition: "transform 0.3s",
-              }}
-              whileHover={{ y: -4 }}
-            >
-              {p.highlight && (
-                <>
-                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,rgba(37,99,235,0.15),rgba(124,58,237,0.15))", pointerEvents: "none" }} />
-                  <div style={{ position: "absolute", top: 20, right: 20, background: "linear-gradient(135deg,#2563eb,#7c3aed)", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", padding: "4px 12px", borderRadius: 999, textTransform: "uppercase" }}>Most Popular</div>
-                </>
-              )}
-              <div style={{ position: "relative", zIndex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: p.highlight ? "rgba(255,255,255,0.5)" : "#94a3b8", marginBottom: 12 }}>{p.name}</div>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 8 }}>
-                  <span style={{ fontSize: 48, fontWeight: 900, letterSpacing: "-0.04em", color: p.highlight ? "#fff" : "#0f172a", lineHeight: 1 }}>{p.price}</span>
-                  {p.period && <span style={{ fontSize: 16, color: p.highlight ? "rgba(255,255,255,0.5)" : "#94a3b8", marginBottom: 6 }}>{p.period}</span>}
-                </div>
-                <p style={{ fontSize: 14, color: p.highlight ? "rgba(255,255,255,0.55)" : "#64748b", marginBottom: 32, lineHeight: 1.6 }}>{p.desc}</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 36 }}>
-                  {p.features.map((f, j) => (
-                    <div key={j} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 18, height: 18, borderRadius: 6, background: p.highlight ? "rgba(255,255,255,0.12)" : "rgba(37,99,235,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <Check size={10} color={p.highlight ? "#fff" : "#2563eb"} />
-                      </div>
-                      <span style={{ fontSize: 14, color: p.highlight ? "rgba(255,255,255,0.8)" : "#334155" }}>{f}</span>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  style={{
-                    width: "100%", padding: "14px 0", borderRadius: 999, border: "none",
-                    background: p.highlight ? "linear-gradient(135deg,#2563eb,#7c3aed)" : "#f1f5f9",
-                    color: p.highlight ? "#fff" : "#0f172a",
-                    fontWeight: 700, fontSize: 15, cursor: "pointer",
-                    boxShadow: p.highlight ? "0 8px 24px rgba(37,99,235,0.4)" : "none",
-                    transition: "all 0.25s",
-                    fontFamily: "inherit",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px) scale(1.01)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; }}
-                >
-                  {p.cta}
-                </button>
-              </div>
             </motion.div>
           ))}
         </div>
@@ -796,7 +634,7 @@ function CTABanner({ navigate, user }) {
 /* ── Footer ───────────────────────────────────────────────────────── */
 function Footer({ navigate }) {
   const cols = [
-    { heading: "Product",  links: ["Features","How it works","Pricing","Changelog","Roadmap"] },
+    { heading: "Product",  links: ["Features","How it works","Changelog","Roadmap"] },
     { heading: "Use Cases",links: ["Research","Legal","Enterprise","Education","Healthcare"] },
     { heading: "Company",  links: ["About","Blog","Careers","Press","Contact"] },
     { heading: "Legal",    links: ["Privacy","Terms","Security","Cookies"] },
@@ -878,13 +716,11 @@ export default function HomePage() {
   return (
     <div style={{ background: "#fff", overflowX: "hidden" }}>
       <HeroSection navigate={navigate} user={user} />
-      <LogoCloud />
-      <StatsSection />
+      <TechStackSection />
+      <FreeBenefitsSection />
       <HowSection />
       <FeaturesSection />
       <UseCasesSection />
-      <TestimonialsSection />
-      <PricingSection />
       <FAQSection />
       <CTABanner navigate={navigate} user={user} />
       <Footer navigate={navigate} />

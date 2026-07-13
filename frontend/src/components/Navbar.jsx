@@ -5,10 +5,9 @@ import { useAuth } from "../context/AuthContext";
 import { LogOut, ChevronDown } from "lucide-react";
 
 const NAV_LINKS = [
-  { label: "Features",  href: "#features" },
+  { label: "Features",     href: "#features" },
   { label: "How it Works", href: "#how" },
-  { label: "Use Cases", href: "#usecases" },
-  { label: "Pricing",   href: "#pricing" },
+  { label: "Use Cases",    href: "#usecases" },
 ];
 
 export default function Navbar() {

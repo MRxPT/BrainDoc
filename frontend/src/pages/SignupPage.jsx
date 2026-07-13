@@ -274,7 +274,7 @@ export default function SignupPage() {
               Everything you need<br />to unlock your PDFs
             </h3>
             <p style={{ fontSize: 16, color: "#64748b", marginBottom: 40, lineHeight: 1.75, maxWidth: 380 }}>
-              Join 2,400+ researchers, analysts, and professionals using BrainDoc every day.
+              Upload any PDF and get AI-powered answers instantly. Free to use — bring your own API key for premium models.
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 48 }}>
@@ -294,33 +294,6 @@ export default function SignupPage() {
               ))}
             </div>
 
-            {/* Testimonial card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.85, duration: 0.6, ease: EASE }}
-              style={{ background: "#fff", borderRadius: 20, padding: "24px 28px", boxShadow: "0 4px 24px rgba(0,0,0,0.08)", border: "1px solid #f1f5f9", maxWidth: 400 }}
-            >
-              <div style={{ display: "flex", gap: 3, marginBottom: 12 }}>
-                {[1,2,3,4,5].map(s => (
-                  <svg key={s} width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                ))}
-              </div>
-              <p style={{ fontSize: 14, color: "#334155", lineHeight: 1.65, marginBottom: 18, fontStyle: "italic" }}>
-                "BrainDoc is the most useful AI tool I've added to my research workflow. The accuracy is genuinely impressive."
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>S</span>
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Sarah Chen</div>
-                  <div style={{ fontSize: 12, color: "#94a3b8" }}>Research Scientist, BioLab</div>
-                </div>
-              </div>
-            </motion.div>
           </div>
         </div>
       )}
