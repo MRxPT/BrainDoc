@@ -1,52 +1,115 @@
 import React, { useState } from "react";
-import { Box, Typography, TextField, Alert, Grid } from "@mui/material";
 import { motion } from "framer-motion";
-import {
-  PersonOutlined, EmailOutlined, CalendarTodayOutlined,
-  EditOutlined, SaveOutlined, CancelOutlined,
-  ChatOutlined, UploadFileOutlined, SettingsOutlined, InsertDriveFileOutlined, SearchOutlined,
-} from "@mui/icons-material";
+import { User, Mail, Calendar, Edit2, Save, X, MessageSquare, Settings, LayoutDashboard, FileText, Search, Zap, Clock } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { updateMe } from "../api/auth";
-import { GlassCard, MetricCard, SidebarNav, NeonBadge, AvatarCircle } from "../components/ui/design-system";
 
-const A = "#ff6a3d";
+const P = "#2563eb";
+const EASE = [0.22, 0.61, 0.36, 1];
 
-const NAV_ITEMS = [
-  { id: "/dashboard", label: "Profile",  icon: <PersonOutlined sx={{ fontSize: 17 }} /> },
-  { id: "/chat",      label: "Chat",     icon: <ChatOutlined sx={{ fontSize: 17 }} /> },
-  { id: "/settings",  label: "Settings", icon: <SettingsOutlined sx={{ fontSize: 17 }} /> },
-];
-
-const METRICS = [
-  { icon: <InsertDriveFileOutlined sx={{ fontSize: 18 }} />, label: "Total Documents", value: "—",  trend: null },
-  { icon: <ChatOutlined sx={{ fontSize: 18 }} />,            label: "Queries Today",   value: "—",  trend: null },
-  { icon: <SearchOutlined sx={{ fontSize: 18 }} />,          label: "Embeddings",      value: "RAG", trend: null },
-  { icon: <UploadFileOutlined sx={{ fontSize: 18 }} />,      label: "Avg Response",    value: "<1s", trend: null, trendUp: true },
-];
-
-function InfoRow({ icon, label, value }) {
+/* ── Sidebar ──────────────────────────────────────────────────────── */
+function Sidebar({ user }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const nav = [
+    { id: "/dashboard", icon: <LayoutDashboard size={16} />, label: "Profile" },
+    { id: "/chat",      icon: <MessageSquare size={16} />,  label: "Chat" },
+    { id: "/settings",  icon: <Settings size={16} />,       label: "Settings" },
+  ];
   return (
-    <Box display="flex" alignItems="center" gap={1.5} py={1.4}
-      sx={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-      <Box sx={{ color: "rgba(255,106,61,0.35)", display: "flex", flexShrink: 0 }}>{icon}</Box>
-      <Box minWidth={0}>
-        <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>
-          {label}
-        </Typography>
-        <Typography sx={{ fontSize: "0.84rem", color: "rgba(255,255,255,0.7)", fontFamily: label === "Email" ? "'JetBrains Mono', monospace" : "inherit" }} noWrap>
-          {value || "—"}
-        </Typography>
-      </Box>
-    </Box>
+    <div style={{ width: 240, flexShrink: 0, borderRight: "1px solid #f1f5f9", background: "#fafbfc", display: "flex", flexDirection: "column", position: "sticky", top: 64, height: "calc(100vh - 64px)" }}>
+      {/* User */}
+      <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid #f1f5f9" }}>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#94a3b8", margin: "0 0 14px" }}>Workspace</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 11, background: "linear-gradient(135deg,#2563eb,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(37,99,235,0.25)" }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>{user?.username?.[0]?.toUpperCase() || "U"}</span>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.username || "User"}</p>
+            <span style={{ padding: "1px 7px", borderRadius: 999, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", fontSize: 10, fontWeight: 700, color: "#10b981" }}>Active</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <div style={{ padding: "12px 12px", flex: 1 }}>
+        {nav.map((n) => {
+          const isActive = location.pathname === n.id;
+          return (
+            <button key={n.id} onClick={() => navigate(n.id)}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", gap: 10,
+                padding: "9px 12px", borderRadius: 10, marginBottom: 2,
+                background: isActive ? "rgba(37,99,235,0.06)" : "transparent",
+                border: `1px solid ${isActive ? "rgba(37,99,235,0.15)" : "transparent"}`,
+                borderLeft: isActive ? `2px solid ${P}` : "2px solid transparent",
+                color: isActive ? "#0f172a" : "#64748b",
+                fontWeight: isActive ? 600 : 400, fontSize: 14,
+                cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#0f172a"; } }}
+              onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#64748b"; } }}
+            >
+              {n.icon}{n.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Plan */}
+      <div style={{ padding: "16px 20px", borderTop: "1px solid #f1f5f9" }}>
+        <span style={{ padding: "3px 10px", borderRadius: 999, background: "rgba(37,99,235,0.06)", border: "1px solid rgba(37,99,235,0.15)", fontSize: 11, fontWeight: 700, color: P }}>Free Plan</span>
+      </div>
+    </div>
   );
 }
 
+/* ── Card ─────────────────────────────────────────────────────────── */
+function Card({ children, style = {} }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", position: "relative", overflow: "hidden", ...style }}>
+      {children}
+    </div>
+  );
+}
+
+/* ── Info row ─────────────────────────────────────────────────────── */
+function InfoRow({ icon, label, value }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid #f8fafc" }}>
+      <div style={{ color: "#94a3b8", display: "flex", flexShrink: 0 }}>{icon}</div>
+      <div>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#94a3b8", margin: "0 0 2px" }}>{label}</p>
+        <p style={{ fontSize: 14, color: "#334155", margin: 0, fontFamily: label === "Email" ? "monospace" : "inherit" }}>{value || "—"}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Metric card ──────────────────────────────────────────────────── */
+function MetricCard({ icon, label, value, delay = 0 }) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.5, ease: EASE }}>
+      <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e2e8f0", padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", transition: "all 0.2s" }}
+        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(37,99,235,0.08)"; e.currentTarget.style.borderColor = "#bfdbfe"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+      >
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: P, marginBottom: 14 }}>
+          {icon}
+        </div>
+        <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px" }}>{label}</p>
+        <p style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.03em", fontFamily: "monospace" }}>{value}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ── Main ─────────────────────────────────────────────────────────── */
 export default function DashboardPage() {
   const { user, loginUser } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ username: user?.username || "" });
   const [success, setSuccess] = useState("");
@@ -61,222 +124,139 @@ export default function DashboardPage() {
       setSuccess("Profile updated!"); setEditing(false);
     } catch (err) {
       setError(err.response?.data?.detail || "Update failed.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const fmt = (d) => d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—";
 
+  const METRICS = [
+    { icon: <FileText size={16} />,    label: "Documents",    value: "—",   delay: 0 },
+    { icon: <MessageSquare size={16}/>,label: "Queries",      value: "—",   delay: 0.06 },
+    { icon: <Search size={16} />,      label: "Embeddings",   value: "RAG", delay: 0.12 },
+    { icon: <Clock size={16} />,       label: "Avg Response", value: "<1s", delay: 0.18 },
+  ];
+
   return (
-    <Box sx={{
-      display: "flex", minHeight: "calc(100vh - 56px)",
-      position: "relative", zIndex: 1, background: "#0a0a0a",
-    }}>
-      {/* ── Left Sidebar ── */}
-      <Box sx={{
-        width: 240, flexShrink: 0,
-        borderRight: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(14,14,14,0.8)", backdropFilter: "blur(20px)",
-        display: "flex", flexDirection: "column",
-        position: "sticky", top: 56, height: "calc(100vh - 56px)",
-      }}>
-        {/* Sidebar header */}
-        <Box sx={{ px: 3, pt: 4, pb: 3, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-          <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", mb: 2 }}>
-            Workspace
-          </Typography>
-          <Box display="flex" alignItems="center" gap={1.5}>
-            <AvatarCircle name={user?.username || "U"} size={34} showStatus />
-            <Box minWidth={0}>
-              <Typography sx={{ fontSize: "0.84rem", fontWeight: 700, color: "#f5f5f5" }} noWrap>
-                {user?.username || "User"}
-              </Typography>
-              <NeonBadge color="green" size="xs">Active</NeonBadge>
-            </Box>
-          </Box>
-        </Box>
+    <div style={{ display: "flex", minHeight: "calc(100vh - 64px)", background: "#f8fafc" }}>
+      <Sidebar user={user} />
 
-        {/* Nav */}
-        <Box sx={{ px: 2, pt: 2.5, flex: 1 }}>
-          <SidebarNav
-            items={NAV_ITEMS}
-            active={location.pathname}
-            onSelect={(id) => navigate(id)}
-          />
-        </Box>
+      <div style={{ flex: 1, overflow: "auto", padding: "40px 48px" }}>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
 
-        {/* Bottom */}
-        <Box sx={{ px: 3, py: 3, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          <NeonBadge color="orange">Free Plan</NeonBadge>
-        </Box>
-      </Box>
-
-      {/* ── Main Content ── */}
-      <Box sx={{ flex: 1, overflow: "auto", p: { xs: 3, md: 5 } }}>
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
-
-          {/* Page header */}
-          <Box mb={6}>
-            <Typography sx={{
-              fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.14em",
-              color: "rgba(255,106,61,0.5)", textTransform: "uppercase", mb: 0.75,
-            }}>
-              Profile Overview
-            </Typography>
-            <Typography variant="h4" fontWeight={800} sx={{
-              color: "#f5f5f5", letterSpacing: "-0.03em",
-              fontFamily: "'DM Sans', Inter, sans-serif",
-            }}>
-              Good to see you, <Box component="span" sx={{ color: A }}>{user?.username || "there"}</Box>
-            </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.25)", fontSize: "0.875rem", mt: 0.75 }}>
+          {/* Header */}
+          <div style={{ marginBottom: 36 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: P, margin: "0 0 6px" }}>Profile Overview</p>
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: "#0f172a", margin: "0 0 4px", letterSpacing: "-0.03em" }}>
+              Good to see you, <span style={{ color: P }}>{user?.username || "there"}</span>
+            </h1>
+            <p style={{ fontSize: 14, color: "#64748b", margin: 0 }}>
               {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {/* Metric cards */}
-          <Grid container spacing={2} mb={5}>
-            {METRICS.map((m, i) => (
-              <Grid item xs={12} sm={6} xl={3} key={i}>
-                <MetricCard {...m} delay={i * 0.06} />
-              </Grid>
-            ))}
-          </Grid>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 32 }}>
+            {METRICS.map((m) => <MetricCard key={m.label} {...m} />)}
+          </div>
 
-          {/* Profile cards */}
-          <Grid container spacing={3}>
+          {/* Profile + Edit grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 20 }}>
+
             {/* Identity card */}
-            <Grid item xs={12} md={4}>
-              <GlassCard hover={false} sx={{ height: "100%" }}>
-                <Box p={3.5}>
-                  <Box textAlign="center" mb={3.5}>
-                    <motion.div whileHover={{ scale: 1.04 }} style={{ display: "inline-block", marginBottom: 12 }}>
-                      <AvatarCircle name={user?.username || "U"} size={72} showStatus />
-                    </motion.div>
-                    <Typography variant="h6" fontWeight={700} sx={{ color: "#f5f5f5", fontSize: "1rem", mt: 1.5 }}>
-                      {user?.username}
-                    </Typography>
-                    <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)", mt: 0.4, fontFamily: "'JetBrains Mono', monospace" }}>
-                      {user?.email}
-                    </Typography>
-                  </Box>
-                  <InfoRow icon={<PersonOutlined sx={{ fontSize: 14 }} />} label="Username" value={user?.username} />
-                  <InfoRow icon={<EmailOutlined sx={{ fontSize: 14 }} />}   label="Email"    value={user?.email} />
-                  <InfoRow icon={<CalendarTodayOutlined sx={{ fontSize: 14 }} />} label="Joined" value={fmt(user?.created_at)} />
-                </Box>
-              </GlassCard>
-            </Grid>
+            <Card>
+              <div style={{ padding: 28 }}>
+                <div style={{ textAlign: "center", marginBottom: 24 }}>
+                  <motion.div whileHover={{ scale: 1.04 }} style={{ display: "inline-block", marginBottom: 12 }}>
+                    <div style={{ width: 72, height: 72, borderRadius: 20, background: "linear-gradient(135deg,#2563eb,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto", boxShadow: "0 4px 20px rgba(37,99,235,0.3)" }}>
+                      <span style={{ fontSize: 26, fontWeight: 900, color: "#fff" }}>{user?.username?.[0]?.toUpperCase() || "U"}</span>
+                    </div>
+                  </motion.div>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: "0 0 3px" }}>{user?.username}</p>
+                  <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 10px", fontFamily: "monospace" }}>{user?.email}</p>
+                  <span style={{ padding: "3px 10px", borderRadius: 999, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", fontSize: 11, fontWeight: 700, color: "#10b981" }}>● Active</span>
+                </div>
+                <InfoRow icon={<User size={14} />}     label="Username" value={user?.username} />
+                <InfoRow icon={<Mail size={14} />}     label="Email"    value={user?.email} />
+                <InfoRow icon={<Calendar size={14} />} label="Joined"   value={fmt(user?.created_at)} />
+              </div>
+            </Card>
 
-            {/* Edit panel */}
-            <Grid item xs={12} md={8}>
-              <GlassCard hover={false} sx={{ mb: 2.5 }}>
-                <Box p={3.5}>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                    <Box>
-                      <Typography variant="h6" fontWeight={700} sx={{ color: "#f5f5f5", fontSize: "0.95rem" }}>Edit Profile</Typography>
-                      <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)", mt: 0.25 }}>Update your display name</Typography>
-                    </Box>
+            {/* Edit section */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <Card>
+                <div style={{ padding: 28 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+                    <div>
+                      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: "0 0 3px", letterSpacing: "-0.02em" }}>Edit Profile</h3>
+                      <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>Update your display name</p>
+                    </div>
                     {!editing && (
-                      <motion.button
-                        whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                      <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
                         onClick={() => setEditing(true)}
-                        style={{
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                          padding: "7px 15px", borderRadius: 8,
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          background: "rgba(255,255,255,0.03)",
-                          color: "rgba(255,255,255,0.45)",
-                          fontWeight: 600, fontSize: "0.8rem",
-                          cursor: "pointer", fontFamily: "'DM Sans', Inter, sans-serif",
-                          transition: "all 0.15s",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,106,61,0.3)"; e.currentTarget.style.color = A; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 9, border: "1.5px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = P; e.currentTarget.style.color = P; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#64748b"; }}
                       >
-                        <EditOutlined style={{ fontSize: 13 }} /> Edit
+                        <Edit2 size={13} /> Edit
                       </motion.button>
                     )}
-                  </Box>
+                  </div>
 
-                  {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSuccess("")}>{success}</Alert>}
-                  {error   && <Alert severity="error"   sx={{ mb: 2, borderRadius: 2, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5" }} onClose={() => setError("")}>{error}</Alert>}
+                  {success && <div style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#10b981" }}>{success}</div>}
+                  {error   && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#dc2626" }}>{error}</div>}
 
-                  <TextField
-                    label="Username" value={editing ? form.username : user?.username || ""}
-                    onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
-                    fullWidth disabled={!editing} margin="normal"
-                  />
-                  <TextField
-                    label="Email" value={user?.email || ""} fullWidth disabled margin="normal"
-                    helperText="Email cannot be changed after signup"
-                  />
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Username</label>
+                    <input
+                      value={editing ? form.username : user?.username || ""}
+                      onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
+                      disabled={!editing}
+                      style={{ display: "block", width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: editing ? "#fff" : "#f8fafc", color: "#0f172a", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", transition: "border-color 0.2s, box-shadow 0.2s" }}
+                      onFocus={(e) => { if (editing) { e.target.style.borderColor = P; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.1)"; } }}
+                      onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Email</label>
+                    <input value={user?.email || ""} disabled style={{ display: "block", width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #f1f5f9", background: "#f8fafc", color: "#94a3b8", fontSize: 14, fontFamily: "monospace", outline: "none", boxSizing: "border-box" }} />
+                    <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0" }}>Email cannot be changed after signup</p>
+                  </div>
 
                   {editing && (
-                    <Box display="flex" gap={1.5} mt={2.5}>
+                    <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         onClick={handleSave} disabled={loading}
-                        style={{
-                          display: "inline-flex", alignItems: "center", gap: 6,
-                          padding: "9px 22px", borderRadius: 9, border: "none",
-                          background: A, color: "#fff",
-                          fontWeight: 700, fontSize: "0.85rem",
-                          cursor: "pointer", fontFamily: "'DM Sans', Inter, sans-serif",
-                          boxShadow: "0 0 18px rgba(255,106,61,0.25)",
-                        }}>
-                        <SaveOutlined style={{ fontSize: 14 }} />
-                        {loading ? "Saving..." : "Save changes"}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#2563eb,#7c3aed)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 12px rgba(37,99,235,0.3)" }}>
+                        <Save size={14} /> {loading ? "Saving..." : "Save changes"}
                       </motion.button>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         onClick={() => { setEditing(false); setForm({ username: user?.username }); setError(""); }}
-                        style={{
-                          display: "inline-flex", alignItems: "center", gap: 6,
-                          padding: "9px 22px", borderRadius: 9,
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          background: "transparent",
-                          color: "rgba(255,255,255,0.35)",
-                          fontWeight: 500, fontSize: "0.85rem",
-                          cursor: "pointer", fontFamily: "'DM Sans', Inter, sans-serif",
-                        }}>
-                        <CancelOutlined style={{ fontSize: 14 }} /> Cancel
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+                        <X size={14} /> Cancel
                       </motion.button>
-                    </Box>
+                    </div>
                   )}
-                </Box>
-              </GlassCard>
+                </div>
+              </Card>
 
               {/* Account info */}
-              <GlassCard hover={false}>
-                <Box p={3.5}>
-                  <Typography sx={{ fontSize: "0.6rem", fontWeight: 800, letterSpacing: "0.14em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", mb: 2.5 }}>
-                    Account Details
-                  </Typography>
-                  <Grid container spacing={2}>
-                    {[
-                      { label: "Auth Method", value: "JWT" },
-                      { label: "Account Status", value: "Active" },
-                    ].map((s) => (
-                      <Grid item xs={6} key={s.label}>
-                        <Box sx={{
-                          p: 2.5, borderRadius: "12px", textAlign: "center",
-                          background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
-                        }}>
-                          <Typography sx={{ fontSize: "1.35rem", fontWeight: 800, color: A, letterSpacing: "-0.03em", fontFamily: "'JetBrains Mono', monospace" }}>
-                            {s.value}
-                          </Typography>
-                          <Typography sx={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.2)", mt: 0.5 }}>
-                            {s.label}
-                          </Typography>
-                        </Box>
-                      </Grid>
+              <Card>
+                <div style={{ padding: 28 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#94a3b8", margin: "0 0 16px" }}>Account Details</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    {[{ label: "Auth Method", value: "JWT" }, { label: "Account Status", value: "Active" }].map((s) => (
+                      <div key={s.label} style={{ padding: "18px 20px", borderRadius: 14, textAlign: "center", background: "#f8fafc", border: "1px solid #f1f5f9" }}>
+                        <p style={{ fontSize: 20, fontWeight: 900, color: P, letterSpacing: "-0.03em", margin: "0 0 3px", fontFamily: "monospace" }}>{s.value}</p>
+                        <p style={{ fontSize: 11, color: "#94a3b8", margin: 0 }}>{s.label}</p>
+                      </div>
                     ))}
-                  </Grid>
-                </Box>
-              </GlassCard>
-            </Grid>
-          </Grid>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
         </motion.div>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

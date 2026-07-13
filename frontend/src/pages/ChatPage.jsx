@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Box, Typography, Tooltip, CircularProgress, Alert } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
-import { AddOutlined, RefreshOutlined, AutoAwesomeOutlined, ChevronRightOutlined, ChevronLeftOutlined } from "@mui/icons-material";
+import { Plus, RefreshCw, Sparkles, ChevronRight, ChevronLeft } from "lucide-react";
+import { CircularProgress } from "@mui/material";
 import DocumentSidebar from "../components/DocumentSidebar";
 import ChatWindow from "../components/ChatWindow";
 import UploadDialog from "../components/UploadDialog";
 import { listDocuments, getDocument } from "../api/documents";
 import { getAISettings } from "../api/settings";
-import { NeonBadge, ProgressBar } from "../components/ui/design-system";
 
-const A = "#ff6a3d";
+const P = "#2563eb";
 const POLL = 3000;
 
-// ── Context Panel (right side) ────────────────────────────────────────────
+/* ── Context Panel ────────────────────────────────────────────────── */
 function ContextPanel({ sources = [], docName = "", collapsed, onToggle }) {
   const mockSources = sources.length > 0 ? sources : [
     "The document discusses retrieval-augmented generation as a method to improve LLM accuracy...",
@@ -21,183 +20,97 @@ function ContextPanel({ sources = [], docName = "", collapsed, onToggle }) {
   ];
 
   return (
-    <Box sx={{
-      width: collapsed ? 0 : 280, flexShrink: 0,
-      borderLeft: "1px solid rgba(255,255,255,0.05)",
-      background: "rgba(12,12,12,0.85)", backdropFilter: "blur(20px)",
-      display: "flex", flexDirection: "column",
-      overflow: "hidden",
+    <div style={{
+      width: collapsed ? 0 : 268, flexShrink: 0,
+      borderLeft: "1px solid #f1f5f9",
+      background: "#fafbfc", display: "flex", flexDirection: "column",
+      overflow: "hidden", position: "relative",
       transition: "width 0.3s cubic-bezier(0.4,0,0.2,1)",
-      position: "relative",
     }}>
-      {/* Toggle button */}
-      <Box
+      {/* Toggle */}
+      <button
         onClick={onToggle}
-        sx={{
+        style={{
           position: "absolute", left: -14, top: "50%", transform: "translateY(-50%)",
           width: 28, height: 28, borderRadius: "50%", zIndex: 10,
-          background: "rgba(22,22,22,0.95)", border: "1px solid rgba(255,255,255,0.08)",
+          background: "#fff", border: "1px solid #e2e8f0",
           display: "flex", alignItems: "center", justifyContent: "center",
-          cursor: "pointer", backdropFilter: "blur(12px)",
-          color: "rgba(255,255,255,0.4)",
-          transition: "border-color 0.15s, color 0.15s",
-          "&:hover": { borderColor: "rgba(255,106,61,0.3)", color: A },
+          cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+          color: "#94a3b8", transition: "all 0.15s",
         }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = P; e.currentTarget.style.color = P; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#94a3b8"; }}
       >
-        {collapsed
-          ? <ChevronLeftOutlined sx={{ fontSize: 14 }} />
-          : <ChevronRightOutlined sx={{ fontSize: 14 }} />}
-      </Box>
+        {collapsed ? <ChevronLeft size={13} /> : <ChevronRight size={13} />}
+      </button>
 
       {!collapsed && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          style={{ display: "flex", flexDirection: "column", height: "100%" }}
-        >
-          {/* Header */}
-          <Box sx={{ px: 2.5, py: 2, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-            <Box display="flex" alignItems="center" gap={1} justifyContent="space-between">
-              <Typography sx={{ fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.12em", color: "rgba(255,255,255,0.25)", textTransform: "uppercase" }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+          style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+          <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid #f1f5f9" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#94a3b8", margin: 0 }}>
                 Retrieved Context
-              </Typography>
-              <NeonBadge color="orange" size="xs">{mockSources.length}</NeonBadge>
-            </Box>
-            {docName && (
-              <Typography sx={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.2)", mt: 0.5 }} noWrap>
-                {docName}
-              </Typography>
-            )}
-          </Box>
+              </p>
+              <span style={{ padding: "1px 7px", borderRadius: 999, background: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.15)", fontSize: 10, fontWeight: 700, color: P }}>
+                {mockSources.length}
+              </span>
+            </div>
+            {docName && <p style={{ fontSize: 11, color: "#94a3b8", margin: "4px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{docName}</p>}
+          </div>
 
-          {/* Source chunks */}
-          <Box sx={{ flex: 1, overflow: "auto", p: 1.5 }}>
-            <AnimatePresence>
-              {mockSources.map((src, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.06, duration: 0.3 }}
+          <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
+            {mockSources.map((src, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+                <div style={{
+                  padding: 12, marginBottom: 8, borderRadius: 10,
+                  background: "#fff", border: "1px solid #f1f5f9",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  cursor: "default", transition: "all 0.15s",
+                }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#e0eeff"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(37,99,235,0.06)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#f1f5f9"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; }}
                 >
-                  <Box sx={{
-                    p: 2, mb: 1.5, borderRadius: "10px",
-                    background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
-                    cursor: "pointer", transition: "all 0.15s",
-                    "&:hover": { background: "rgba(255,106,61,0.04)", borderColor: "rgba(255,106,61,0.12)" },
-                  }}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                      <Typography sx={{ fontSize: "0.58rem", fontWeight: 800, color: "rgba(255,106,61,0.5)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                        Chunk {i + 1}
-                      </Typography>
-                      <Typography sx={{ fontSize: "0.58rem", color: "rgba(255,255,255,0.2)", fontFamily: "'JetBrains Mono', monospace" }}>
-                        p.{i + 1}
-                      </Typography>
-                    </Box>
-                    <Typography sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                      {src}
-                    </Typography>
-                    <Box mt={1.5}>
-                      <Box display="flex" justifyContent="space-between" mb={0.5}>
-                        <Typography sx={{ fontSize: "0.58rem", color: "rgba(255,255,255,0.2)" }}>Relevance</Typography>
-                        <Typography sx={{ fontSize: "0.58rem", color: A, fontFamily: "'JetBrains Mono', monospace" }}>
-                          {(0.95 - i * 0.08).toFixed(2)}
-                        </Typography>
-                      </Box>
-                      <ProgressBar value={(0.95 - i * 0.08) * 100} max={100} height={2} />
-                    </Box>
-                  </Box>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </Box>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", letterSpacing: "0.06em", textTransform: "uppercase" }}>Chunk {i + 1}</span>
+                    <span style={{ fontSize: 10, color: "#94a3b8", fontFamily: "monospace" }}>p.{i + 1}</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: "#64748b", lineHeight: 1.6, margin: "0 0 10px", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {src}
+                  </p>
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: "#94a3b8" }}>Relevance</span>
+                      <span style={{ fontSize: 10, color: P, fontFamily: "monospace", fontWeight: 600 }}>{(0.95 - i * 0.08).toFixed(2)}</span>
+                    </div>
+                    <div style={{ height: 3, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+                      <motion.div initial={{ width: 0 }} animate={{ width: `${(0.95 - i * 0.08) * 100}%` }} transition={{ delay: 0.3 + i * 0.1, duration: 0.6 }}
+                        style={{ height: "100%", background: `linear-gradient(90deg,${P},#7c3aed)`, borderRadius: 99 }} />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
 
-          {/* Footer hint */}
-          <Box sx={{ px: 2.5, py: 2, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
-            <Typography sx={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.15)", lineHeight: 1.5 }}>
-              These are the semantic chunks retrieved for the last AI response.
-            </Typography>
-          </Box>
+          <div style={{ padding: "10px 16px", borderTop: "1px solid #f1f5f9" }}>
+            <p style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.5, margin: 0 }}>
+              Semantic chunks retrieved for the last AI response.
+            </p>
+          </div>
         </motion.div>
       )}
-    </Box>
+    </div>
   );
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────
-function EmptyState() {
-  return (
-    <Box sx={{
-      flex: 1, height: "100%", display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center",
-      position: "relative", overflow: "hidden",
-    }}>
-      <Box sx={{
-        position: "absolute", top: "15%", left: "50%", transform: "translateX(-50%)",
-        width: 600, height: 400,
-        background: "radial-gradient(ellipse, rgba(255,106,61,0.07) 0%, transparent 65%)",
-        pointerEvents: "none",
-      }} />
-      <Box sx={{
-        position: "absolute", top: "18%", left: "50%", transform: "translateX(-50%)",
-        width: 280, height: "1px",
-        background: "linear-gradient(90deg, transparent, rgba(255,106,61,0.45), transparent)",
-        boxShadow: "0 0 20px rgba(255,106,61,0.25)",
-      }} />
-
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        style={{ textAlign: "center", position: "relative", zIndex: 1 }}
-      >
-        <motion.div animate={{ y: [-4, 4, -4] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
-          <Box sx={{
-            width: 60, height: 60, borderRadius: "15px", mx: "auto", mb: 3,
-            background: "rgba(255,106,61,0.06)", border: "1px solid rgba(255,106,61,0.13)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 0 40px rgba(255,106,61,0.08)",
-          }}>
-            <AutoAwesomeOutlined sx={{ fontSize: 26, color: A }} />
-          </Box>
-        </motion.div>
-
-        <Typography sx={{
-          fontSize: "1.5rem", fontWeight: 800,
-          background: "linear-gradient(180deg, #f5f5f5 0%, rgba(255,255,255,0.35) 100%)",
-          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          letterSpacing: "-0.03em", mb: 1.25,
-          fontFamily: "'DM Sans', Inter, sans-serif",
-        }}>
-          Select a document
-        </Typography>
-        <Typography sx={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.22)", mb: 3.5, lineHeight: 1.7 }}>
-          Choose a PDF from the sidebar to start<br />your AI-powered chat session
-        </Typography>
-        <Box display="flex" gap={1} flexWrap="wrap" justifyContent="center">
-          {["Upload PDF", "Semantic Search", "RAG Intelligence"].map((tag) => (
-            <Box key={tag} sx={{
-              px: 1.75, py: 0.4, borderRadius: "100px",
-              background: "rgba(255,106,61,0.04)", border: "1px solid rgba(255,106,61,0.1)",
-              fontSize: "0.68rem", color: "rgba(255,106,61,0.38)", fontWeight: 500,
-            }}>
-              {tag}
-            </Box>
-          ))}
-        </Box>
-      </motion.div>
-    </Box>
-  );
-}
-
-// ── Main ChatPage ─────────────────────────────────────────────────────────
+/* ── Main ChatPage ────────────────────────────────────────────────── */
 export default function ChatPage() {
-  const [documents, setDocuments]     = useState([]);
-  const [selected, setSelected]       = useState(null);
-  const [uploadOpen, setUploadOpen]   = useState(false);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState("");
+  const [documents, setDocuments]       = useState([]);
+  const [selected, setSelected]         = useState(null);
+  const [uploadOpen, setUploadOpen]     = useState(false);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState("");
   const [aiConfigured, setAiConfigured] = useState(null);
   const [ctxCollapsed, setCtxCollapsed] = useState(false);
 
@@ -240,85 +153,71 @@ export default function ChatPage() {
   }, [documents, selected]);
 
   return (
-    <Box sx={{
-      display: "flex", flexDirection: "column",
-      height: "calc(100vh - 56px)",
-      position: "relative", zIndex: 1,
-      background: "#0a0a0a",
-    }}>
-      {/* Top bar */}
-      <Box sx={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        px: 3, py: 1.25,
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
-        background: "rgba(10,10,10,0.92)", backdropFilter: "blur(24px)",
-        flexShrink: 0, zIndex: 10,
-      }}>
-        <Box display="flex" alignItems="center" gap={1.5}>
-          <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: A, boxShadow: `0 0 8px ${A}` }} />
-          <Typography sx={{ fontWeight: 800, fontSize: "0.83rem", color: "#f5f5f5", fontFamily: "'DM Sans', Inter, sans-serif" }}>
-            Brain<Box component="span" sx={{ color: A }}>Doc</Box>
-          </Typography>
-          <Typography sx={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.18)" }}>
-            / chat workspace
-          </Typography>
-          {selected && (
-            <NeonBadge color={selected.status === "ready" ? "green" : "amber"}>
-              {selected.status === "ready" ? "Ready" : "Indexing"}
-            </NeonBadge>
-          )}
-        </Box>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", paddingTop: 88, background: "#fff", boxSizing: "border-box" }}>
 
-        <Box display="flex" gap={1}>
-          <Tooltip title="Refresh documents">
-            <motion.button
-              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-              onClick={fetchDocs}
-              style={{
-                width: 30, height: 30, borderRadius: 7,
-                border: "1px solid rgba(255,255,255,0.07)",
-                background: "transparent",
-                color: "rgba(255,255,255,0.25)",
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-              <RefreshOutlined style={{ fontSize: 13 }} />
-            </motion.button>
-          </Tooltip>
+      {/* Top bar */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "10px 20px", borderBottom: "1px solid #f1f5f9",
+        background: "#fff", flexShrink: 0, zIndex: 10,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#2563eb,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Sparkles size={13} color="#fff" />
+          </div>
+          <div>
+            <span style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>Chat Workspace</span>
+            {selected && (
+              <span style={{ marginLeft: 8, padding: "2px 8px", borderRadius: 999, background: selected.status === "ready" ? "rgba(16,185,129,0.08)" : "rgba(245,158,11,0.08)", border: `1px solid ${selected.status === "ready" ? "rgba(16,185,129,0.2)" : "rgba(245,158,11,0.2)"}`, fontSize: 11, fontWeight: 600, color: selected.status === "ready" ? "#10b981" : "#f59e0b" }}>
+                {selected.status === "ready" ? "Ready" : "Indexing"}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+            onClick={fetchDocs}
+            style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", color: "#64748b", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#94a3b8"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; }}
+          >
+            <RefreshCw size={13} />
+          </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.03, boxShadow: "0 0 20px rgba(255,106,61,0.4)" }}
+            whileHover={{ scale: 1.02, boxShadow: "0 4px 16px rgba(37,99,235,0.3)" }}
             whileTap={{ scale: 0.97 }}
             onClick={() => setUploadOpen(true)}
             style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              padding: "6px 14px", borderRadius: 7, border: "none",
-              background: A, color: "#fff",
-              fontWeight: 700, fontSize: "0.78rem",
-              cursor: "pointer", fontFamily: "'DM Sans', Inter, sans-serif",
-              boxShadow: "0 0 14px rgba(255,106,61,0.22)",
-              transition: "box-shadow 0.2s",
-            }}>
-            <AddOutlined style={{ fontSize: 14 }} /> Upload PDF
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "7px 16px", borderRadius: 8, border: "none",
+              background: "linear-gradient(135deg,#2563eb,#7c3aed)", color: "#fff",
+              fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+              boxShadow: "0 2px 8px rgba(37,99,235,0.25)", transition: "box-shadow 0.2s",
+            }}
+          >
+            <Plus size={14} /> Upload PDF
           </motion.button>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
+      {/* Error */}
       {error && (
-        <Alert severity="error" onClose={() => setError("")}
-          sx={{ mx: 2, mt: 1, borderRadius: 2, flexShrink: 0, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)" }}>
+        <div style={{ margin: "8px 16px 0", padding: "10px 14px", borderRadius: 10, background: "#fef2f2", border: "1px solid #fecaca", fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           {error}
-        </Alert>
+          <button onClick={() => setError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
+        </div>
       )}
 
       {/* Three-panel layout */}
-      <Box display="flex" flex={1} overflow="hidden" sx={{ minHeight: 0 }}>
+      <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
         {loading ? (
-          <Box display="flex" alignItems="center" justifyContent="center" width="100%">
-            <CircularProgress sx={{ color: A }} size={26} />
-          </Box>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
+            <CircularProgress size={24} style={{ color: P }} />
+          </div>
         ) : (
           <>
-            {/* Panel 1 — Document sidebar */}
             <DocumentSidebar
               documents={documents}
               selected={selected}
@@ -328,19 +227,15 @@ export default function ChatPage() {
                 if (selected?.id === id) setSelected(null);
               }}
             />
-
-            {/* Panel 2 — Chat area */}
-            <Box flex={1} overflow="hidden" sx={{ minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, overflow: "hidden", minHeight: 0, display: "flex", flexDirection: "column" }}>
               {selected ? (
-                <Box flex={1} overflow="hidden" sx={{ minHeight: 0 }}>
+                <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
                   <ChatWindow document={selected} aiConfigured={aiConfigured} onRefreshAI={checkAI} />
-                </Box>
+                </div>
               ) : (
-                <EmptyState />
+                <ChatWindow document={null} aiConfigured={aiConfigured} onRefreshAI={checkAI} />
               )}
-            </Box>
-
-            {/* Panel 3 — Context panel (collapsible) */}
+            </div>
             <ContextPanel
               sources={[]}
               docName={selected?.original_name || ""}
@@ -349,13 +244,13 @@ export default function ChatPage() {
             />
           </>
         )}
-      </Box>
+      </div>
 
       <UploadDialog
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
         onUploaded={(doc) => { setDocuments((p) => [doc, ...p]); setSelected(doc); }}
       />
-    </Box>
+    </div>
   );
 }

@@ -1,478 +1,893 @@
-import React, { useEffect, useRef } from "react";
-import { Box, Typography, Container, Grid } from "@mui/material";
-import { motion, useScroll, useTransform } from "framer-motion";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
-  UploadFileOutlined, SearchOutlined, AutoAwesomeOutlined,
-  HubOutlined, BlurOnOutlined, MemoryOutlined,
-  SecurityOutlined, SpeedOutlined, AutoFixHighOutlined,
-  KeyboardArrowRightOutlined,
-} from "@mui/icons-material";
-import SplineHero from "../components/SplineHero";
-import { HoverFooter } from "../components/ui/hover-footer";
+  Zap, Shield, Search, Brain, FileText, BarChart3,
+  ChevronRight, Check, Star, Plus, Minus, ArrowRight,
+  Upload, MessageSquare, Cpu, Lock, Globe, TrendingUp,
+} from "lucide-react";
 
-const A = "#ff6a3d";
-const AG = "rgba(255,106,61,0.35)";
+const EASE = [0.22, 0.61, 0.36, 1];
 
-/* ── Section label pill ──────────────────────────────────────────────── */
-function Label({ children }) {
-  return (
-    <Box sx={{
-      display: "inline-flex", alignItems: "center", gap: 1,
-      px: 2, py: 0.65, mb: 3, borderRadius: "100px",
-      background: "rgba(255,106,61,0.07)",
-      border: "1px solid rgba(255,106,61,0.18)",
-    }}>
-      <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 2.4, repeat: Infinity }}>
-        <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: A, boxShadow: `0 0 8px ${A}` }} />
-      </motion.div>
-      <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.15em", color: A, textTransform: "uppercase", fontFamily: "'DM Sans', Inter, sans-serif" }}>
-        {children}
-      </Typography>
-    </Box>
-  );
+/* ── Animated counter ─────────────────────────────────────────────── */
+function Counter({ to, suffix = "", prefix = "" }) {
+  const [val, setVal] = useState(0);
+  const ref = useRef(null);
+  const [started, setStarted] = useState(false);
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStarted(true); }, { threshold: 0.5 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!started) return;
+    const dur = 1800, steps = 60, step = dur / steps;
+    let cur = 0;
+    const id = setInterval(() => {
+      cur++;
+      setVal(Math.round((cur / steps) * to));
+      if (cur >= steps) clearInterval(id);
+    }, step);
+    return () => clearInterval(id);
+  }, [started, to]);
+  return <span ref={ref}>{prefix}{val.toLocaleString()}{suffix}</span>;
 }
 
-/* ── Glass card ──────────────────────────────────────────────────────── */
-function GCard({ children, sx = {}, delay = 0 }) {
+/* ── Section badge ────────────────────────────────────────────────── */
+function Badge({ children }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 28 }}
+      initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ y: -4 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, ease: EASE }}
       style={{
-        background: "rgba(22,22,22,0.7)",
-        backdropFilter: "blur(24px)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 18,
-        position: "relative",
-        overflow: "hidden",
-        transition: "border-color 0.2s",
-        ...sx,
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "6px 14px", borderRadius: 999,
+        background: "rgba(37,99,235,0.07)",
+        border: "1px solid rgba(37,99,235,0.15)",
+        fontSize: 12, fontWeight: 600, letterSpacing: "0.06em",
+        textTransform: "uppercase", color: "#2563eb",
+        marginBottom: 20,
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,106,61,0.18)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; }}
     >
-      <Box sx={{
-        position: "absolute", top: 0, left: "8%", right: "8%", height: "1px",
-        background: "linear-gradient(90deg, transparent, rgba(255,106,61,0.22), transparent)",
-        pointerEvents: "none",
-      }} />
+      <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#2563eb" }} />
       {children}
     </motion.div>
   );
 }
 
-/* ── How it works — 3-step flow ──────────────────────────────────────── */
-const HOW_STEPS = [
-  { n: "01", icon: <UploadFileOutlined sx={{ fontSize: 28 }} />, title: "Upload PDF",       desc: "Drop any digital or scanned PDF. Our extractor handles text-layer PDFs natively and runs Tesseract OCR at 300 DPI for image-based pages." },
-  { n: "02", icon: <BlurOnOutlined     sx={{ fontSize: 28 }} />, title: "Embed & Index",    desc: "Each chunk is encoded into a 384-dimensional dense vector using ONNX fastembed. Vectors are stored in-memory — zero latency, total privacy." },
-  { n: "03", icon: <AutoAwesomeOutlined sx={{ fontSize: 28 }} />, title: "Ask Anything",    desc: "Type a question in plain language. BrainDoc retrieves the top semantic matches and grounds the AI answer in your exact document." },
-];
-
-function HowItWorksSection() {
+/* ── Hero dashboard mockup ────────────────────────────────────────── */
+function DashboardMockup() {
   return (
-    <Box sx={{ position: "relative", py: { xs: 10, md: 18 }, overflow: "hidden" }}>
-      <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "rgba(255,255,255,0.04)" }} />
-      <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "1px", background: "rgba(255,255,255,0.04)" }} />
-      <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "50%", height: "100%", background: "radial-gradient(ellipse, rgba(255,106,61,0.05) 0%, transparent 65%)", pointerEvents: "none" }} />
+    <motion.div
+      initial={{ opacity: 0, y: 40, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.9, delay: 0.4, ease: EASE }}
+      style={{ position: "relative" }}
+    >
+      {/* Floating glow blobs */}
+      <div style={{ position: "absolute", top: -60, left: -60, width: 300, height: 300, background: "radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: -40, right: -40, width: 250, height: 250, background: "radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
 
-      <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1 }}>
-        <Box textAlign="center" mb={9}>
-          <Label>How it works</Label>
-          <Typography variant="h2" sx={{ fontSize: { xs: "2.2rem", md: "3.6rem" }, fontWeight: 900, letterSpacing: "-0.04em", color: "#f5f5f5", fontFamily: "'DM Sans', Inter, sans-serif" }}>
-            Three steps to intelligence
-          </Typography>
-        </Box>
-
-        <Grid container spacing={3}>
-          {HOW_STEPS.map((s, i) => (
-            <Grid item xs={12} md={4} key={i}>
-              <GCard delay={i * 0.1}>
-                <Box sx={{ p: { xs: 3.5, md: 5 } }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3.5}>
-                    <Box sx={{
-                      width: 54, height: 54, borderRadius: "14px",
-                      background: "rgba(255,106,61,0.08)", border: "1px solid rgba(255,106,61,0.15)",
-                      display: "flex", alignItems: "center", justifyContent: "center", color: A,
-                    }}>
-                      {s.icon}
-                    </Box>
-                    <Typography sx={{ fontSize: "3.5rem", fontWeight: 900, color: "rgba(255,255,255,0.035)", lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
-                      {s.n}
-                    </Typography>
-                  </Box>
-                  <Typography variant="h5" sx={{ fontSize: "1.3rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>
-                    {s.title}
-                  </Typography>
-                  <Typography sx={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.7 }}>
-                    {s.desc}
-                  </Typography>
-                </Box>
-              </GCard>
-            </Grid>
+      {/* Main card */}
+      <motion.div
+        animate={{ y: [0, -8, 0] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          background: "rgba(255,255,255,0.9)",
+          backdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.9)",
+          borderRadius: 24,
+          boxShadow: "0 2px 4px rgba(0,0,0,0.04), 0 20px 80px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.5)",
+          padding: 24,
+          width: "100%",
+          maxWidth: 520,
+        }}
+      >
+        {/* Top bar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+          {["#ef4444","#f59e0b","#22c55e"].map((c,i) => (
+            <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />
           ))}
-        </Grid>
-      </Container>
-    </Box>
-  );
-}
+          <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 6, height: 28, display: "flex", alignItems: "center", paddingLeft: 10 }}>
+            <span style={{ fontSize: 11, color: "#94a3b8" }}>braindoc.ai/workspace</span>
+          </div>
+        </div>
 
-/* ── Pipeline (sticky scroll) ────────────────────────────────────────── */
-const PIPELINE_STEPS = [
-  { num: "01", icon: <UploadFileOutlined />, title: "Semantic Ingestion",  desc: "PDFs parsed instantly — digital text or Tesseract OCR for scanned pages at 300 DPI." },
-  { num: "02", icon: <BlurOnOutlined />,     title: "Vector Embedding",    desc: "ONNX fastembed encodes each chunk into 384-dimensional dense vectors capturing deep meaning." },
-  { num: "03", icon: <SearchOutlined />,     title: "Neural Retrieval",    desc: "Queries embedded in real-time, cosine similarity matches the exact semantic context needed." },
-  { num: "04", icon: <HubOutlined />,        title: "Grounded Answer",     desc: "LLMs synthesize retrieved vectors into precise, hallucination-free responses with source citations." },
-];
+        {/* Query bar */}
+        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+          <Search size={14} color="#94a3b8" />
+          <span style={{ fontSize: 13, color: "#64748b" }}>What are the key findings in Q3 report?</span>
+          <div style={{ marginLeft: "auto", width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#2563eb,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ArrowRight size={13} color="white" />
+          </div>
+        </div>
 
-function PipelineSection() {
-  return (
-    <Container maxWidth="xl" sx={{ py: { xs: 10, md: 18 } }}>
-      <Grid container spacing={{ xs: 6, md: 10 }}>
-        {/* Sticky left */}
-        <Grid item xs={12} md={5}>
-          <Box sx={{ position: { md: "sticky" }, top: "14vh" }}>
-            <Label>Neural Pipeline</Label>
-            <Typography variant="h2" sx={{
-              fontSize: { xs: "2.4rem", md: "4rem" },
-              fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.05, color: "#f5f5f5", mb: 2.5,
-              fontFamily: "'DM Sans', Inter, sans-serif",
-            }}>
-              Upload.<br />Embed.<br />
-              <Box component="span" sx={{ color: A, textShadow: `0 0 40px ${AG}` }}>Retrieve.</Box>
-            </Typography>
-            <Typography sx={{ fontSize: "0.95rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75, maxWidth: 360, mb: 5 }}>
-              A continuous intelligence flow — from raw PDF to context-grounded AI answers in seconds.
-            </Typography>
+        {/* AI response */}
+        <div style={{ background: "linear-gradient(135deg, rgba(37,99,235,0.04), rgba(124,58,237,0.04))", border: "1px solid rgba(37,99,235,0.1)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <div style={{ width: 22, height: 22, borderRadius: 6, background: "linear-gradient(135deg,#2563eb,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Brain size={11} color="white" />
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", letterSpacing: "0.04em", textTransform: "uppercase" }}>BrainDoc AI</span>
+          </div>
+          {["Revenue grew 34% YoY, reaching $12.4M", "Customer retention rate improved to 94.2%", "3 new enterprise contracts signed in Q3"].map((t, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: "rgba(37,99,235,0.12)", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1, flexShrink: 0 }}>
+                <Check size={8} color="#2563eb" />
+              </div>
+              <span style={{ fontSize: 12, color: "#334155", lineHeight: 1.5 }}>{t}</span>
+            </div>
+          ))}
+        </div>
 
-            {/* Flow diagram */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              {["PDF Upload", "Chunking", "Embedding", "Retrieval", "LLM Answer"].map((step, i, arr) => (
-                <Box key={step}>
-                  <motion.div initial={{ opacity: 0, x: -14 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.09, duration: 0.45 }}>
-                    <Box sx={{
-                      display: "flex", alignItems: "center", gap: 1.75,
-                      px: 2, py: 1.35, borderRadius: "10px",
-                      background: "rgba(255,255,255,0.02)",
-                      border: "1px solid rgba(255,255,255,0.05)",
-                      transition: "all 0.18s",
-                      "&:hover": { background: "rgba(255,106,61,0.05)", borderColor: "rgba(255,106,61,0.14)" },
-                    }}>
-                      <Box sx={{
-                        minWidth: 26, height: 26, borderRadius: "7px",
-                        background: "rgba(255,106,61,0.1)", border: "1px solid rgba(255,106,61,0.2)",
-                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                      }}>
-                        <Typography sx={{ fontSize: "0.58rem", fontWeight: 900, color: A, fontFamily: "'JetBrains Mono', monospace" }}>
-                          {String(i + 1).padStart(2, "0")}
-                        </Typography>
-                      </Box>
-                      <Typography sx={{ fontSize: "0.8rem", fontWeight: 500, color: "#f5f5f5", flex: 1 }}>{step}</Typography>
-                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.28 }}>
-                        <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: A, boxShadow: `0 0 5px ${A}` }} />
-                      </motion.div>
-                    </Box>
-                  </motion.div>
-                  {i < arr.length - 1 && (
-                    <Box sx={{ pl: "20px", py: 0.35 }}>
-                      {[0, 1, 2].map((d) => (
-                        <motion.div key={d} animate={{ opacity: [0.12, 0.65, 0.12] }} transition={{ duration: 1.2, repeat: Infinity, delay: d * 0.2 + i * 0.22 }}>
-                          <Box sx={{ width: 1.5, height: 4, borderRadius: "1px", mb: "3px", background: A, opacity: 0.35 }} />
-                        </motion.div>
-                      ))}
-                    </Box>
-                  )}
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        </Grid>
-
-        {/* Scrolling cards */}
-        <Grid item xs={12} md={7}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 3.5 }}>
-            {PIPELINE_STEPS.map((s, i) => (
-              <GCard key={i} delay={i * 0.07}>
-                <Box sx={{ p: { xs: 3.5, md: 4.5 } }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3.5}>
-                    <Box sx={{ width: 50, height: 50, borderRadius: "13px", background: "rgba(255,106,61,0.08)", border: "1px solid rgba(255,106,61,0.14)", display: "flex", alignItems: "center", justifyContent: "center", color: A }}>
-                      {React.cloneElement(s.icon, { sx: { fontSize: 22 } })}
-                    </Box>
-                    <Typography sx={{ fontSize: "2.8rem", fontWeight: 900, color: "rgba(255,255,255,0.035)", lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
-                      {s.num}
-                    </Typography>
-                  </Box>
-                  <Typography variant="h4" sx={{ fontSize: "1.55rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>
-                    {s.title}
-                  </Typography>
-                  <Typography sx={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75 }}>
-                    {s.desc}
-                  </Typography>
-                </Box>
-              </GCard>
+        {/* Mini chart */}
+        <div style={{ background: "#f8fafc", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#0f172a" }}>Revenue Trend</span>
+            <span style={{ fontSize: 11, color: "#22c55e", fontWeight: 600 }}>+34% ↑</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 48 }}>
+            {[35,48,42,58,52,70,65,84,78,92,88,100].map((h, i) => (
+              <motion.div
+                key={i}
+                initial={{ height: 0 }}
+                animate={{ height: `${h}%` }}
+                transition={{ delay: 0.6 + i * 0.05, duration: 0.5, ease: EASE }}
+                style={{
+                  flex: 1, borderRadius: "3px 3px 0 0",
+                  background: i === 11
+                    ? "linear-gradient(180deg,#2563eb,#7c3aed)"
+                    : `rgba(37,99,235,${0.12 + (i / 11) * 0.2})`,
+                }}
+              />
             ))}
-          </Box>
-        </Grid>
-      </Grid>
-    </Container>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          {[
+            { label: "Documents", val: "2,847", icon: <FileText size={12} /> },
+            { label: "Queries", val: "18,294", icon: <MessageSquare size={12} /> },
+            { label: "Accuracy", val: "99.2%", icon: <TrendingUp size={12} /> },
+          ].map((s, i) => (
+            <div key={i} style={{ background: "#fff", border: "1px solid #f1f5f9", borderRadius: 10, padding: 12, textAlign: "center" }}>
+              <div style={{ color: "#2563eb", display: "flex", justifyContent: "center", marginBottom: 4 }}>{s.icon}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>{s.val}</div>
+              <div style={{ fontSize: 9, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Floating chips */}
+      <motion.div
+        animate={{ y: [0, -6, 0] }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          position: "absolute", top: -20, right: -32,
+          background: "#fff", border: "1px solid #e2e8f0",
+          borderRadius: 12, padding: "10px 14px",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+          display: "flex", alignItems: "center", gap: 8,
+        }}
+      >
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(16,185,129,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Zap size={12} color="#10b981" />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>Indexed in 1.2s</div>
+          <div style={{ fontSize: 9, color: "#94a3b8" }}>PDF processed</div>
+        </div>
+      </motion.div>
+
+      <motion.div
+        animate={{ y: [0, 6, 0] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+        style={{
+          position: "absolute", bottom: 20, left: -40,
+          background: "#fff", border: "1px solid #e2e8f0",
+          borderRadius: 12, padding: "10px 14px",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+          display: "flex", alignItems: "center", gap: 8,
+        }}
+      >
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(37,99,235,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Shield size={12} color="#2563eb" />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>Zero data retention</div>
+          <div style={{ fontSize: 9, color: "#94a3b8" }}>In-memory only</div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
-/* ── Bento features grid ─────────────────────────────────────────────── */
-function BentoSection() {
+/* ── Hero Section ─────────────────────────────────────────────────── */
+function HeroSection({ navigate, user }) {
   return (
-    <Container maxWidth="xl" sx={{ py: { xs: 10, md: 18 } }}>
-      <Box textAlign="center" mb={10}>
-        <Label>Intelligence Layer</Label>
-        <Typography variant="h2" sx={{ fontSize: { xs: "2.2rem", md: "3.6rem" }, fontWeight: 900, letterSpacing: "-0.04em", color: "#f5f5f5", mb: 2, fontFamily: "'DM Sans', Inter, sans-serif" }}>
-          Beyond keyword search
-        </Typography>
-        <Typography sx={{ fontSize: "0.975rem", color: "rgba(255,255,255,0.32)", maxWidth: 480, mx: "auto", lineHeight: 1.75 }}>
-          True semantic understanding powered by dense vector embeddings and retrieval-augmented generation.
-        </Typography>
-      </Box>
+    <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", position: "relative", overflow: "hidden", background: "#fff", paddingTop: 88 }}>
+      {/* Background blobs */}
+      <div style={{ position: "absolute", top: -200, left: -200, width: 700, height: 700, background: "radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: 100, right: -150, width: 500, height: 500, background: "radial-gradient(circle, rgba(124,58,237,0.06) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: -100, left: "40%", width: 400, height: 400, background: "radial-gradient(circle, rgba(37,99,235,0.05) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
 
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" }, gap: 2.5 }}>
-        <GCard delay={0.0}>
-          <Box sx={{ p: { xs: 3.5, md: 5 }, height: { md: 340 }, display: "flex", flexDirection: "column" }}>
-            <Box sx={{ width: 46, height: 46, borderRadius: "12px", background: "rgba(255,106,61,0.08)", border: "1px solid rgba(255,106,61,0.14)", display: "flex", alignItems: "center", justifyContent: "center", color: A, mb: 3 }}>
-              <MemoryOutlined sx={{ fontSize: 21 }} />
-            </Box>
-            <Typography variant="h4" sx={{ fontSize: "1.7rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>Contextual Memory</Typography>
-            <Typography sx={{ fontSize: "0.92rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75, maxWidth: 460 }}>
-              Maintains multi-turn conversation state. Follow up naturally without losing context — like talking to a human analyst who remembers everything.
-            </Typography>
-          </Box>
-        </GCard>
+      <div className="container-xl" style={{ width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center", padding: "80px 80px" }}>
+        {/* Left */}
+        <div>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 999, background: "rgba(37,99,235,0.07)", border: "1px solid rgba(37,99,235,0.15)", marginBottom: 28 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e" }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", letterSpacing: "0.04em" }}>Now with RAG · Zero-hallucination AI</span>
+            </div>
+          </motion.div>
 
-        <GCard delay={0.06} sx={{ background: "rgba(255,106,61,0.03)" }}>
-          <Box sx={{ p: { xs: 3.5, md: 5 }, height: { md: 340 }, display: "flex", flexDirection: "column" }}>
-            <Box sx={{ width: 46, height: 46, borderRadius: "12px", background: "rgba(255,106,61,0.1)", border: "1px solid rgba(255,106,61,0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: A, mb: 3 }}>
-              <AutoFixHighOutlined sx={{ fontSize: 21 }} />
-            </Box>
-            <Typography variant="h4" sx={{ fontSize: "1.7rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>Zero Hallucination</Typography>
-            <Typography sx={{ fontSize: "0.92rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75 }}>
-              Answers strictly grounded in your document. If it's not in the PDF, the AI won't guess.
-            </Typography>
-          </Box>
-        </GCard>
+          <motion.h1
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1, ease: EASE }}
+            className="hero-text"
+            style={{ marginBottom: 24 }}
+          >
+            Your Documents.<br />
+            <span className="gradient-text">Infinite Intelligence.</span>
+          </motion.h1>
 
-        <GCard delay={0.1} sx={{ background: "rgba(255,106,61,0.025)", position: "relative" }}>
-          <Box sx={{ position: "absolute", right: "-6%", top: "-12%", opacity: 0.035, pointerEvents: "none" }}>
-            <SecurityOutlined sx={{ fontSize: 340, color: A }} />
-          </Box>
-          <Box sx={{ p: { xs: 3.5, md: 5 }, height: { md: 280 }, display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
-            <Box sx={{ width: 46, height: 46, borderRadius: "12px", background: "rgba(255,106,61,0.08)", border: "1px solid rgba(255,106,61,0.14)", display: "flex", alignItems: "center", justifyContent: "center", color: A, mb: 3 }}>
-              <SecurityOutlined sx={{ fontSize: 21 }} />
-            </Box>
-            <Typography variant="h4" sx={{ fontSize: "1.7rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>Ephemeral Privacy</Typography>
-            <Typography sx={{ fontSize: "0.92rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75, maxWidth: 480 }}>
-              Pure in-memory RAG. PDFs processed in RAM — no vectors written to disk, nothing retained after your session ends.
-            </Typography>
-          </Box>
-        </GCard>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: EASE }}
+            style={{ fontSize: 20, color: "#64748b", lineHeight: 1.7, marginBottom: 40, maxWidth: 480 }}
+          >
+            Upload any PDF and have an intelligent conversation with it. BrainDoc uses semantic search and retrieval-augmented generation to give you precise, grounded answers.
+          </motion.p>
 
-        <GCard delay={0.16}>
-          <Box sx={{ p: { xs: 3.5, md: 5 }, height: { md: 280 }, display: "flex", flexDirection: "column" }}>
-            <Box sx={{ width: 46, height: 46, borderRadius: "12px", background: "rgba(255,106,61,0.08)", border: "1px solid rgba(255,106,61,0.14)", display: "flex", alignItems: "center", justifyContent: "center", color: A, mb: 3 }}>
-              <SpeedOutlined sx={{ fontSize: 21 }} />
-            </Box>
-            <Typography variant="h4" sx={{ fontSize: "1.7rem", fontWeight: 700, color: "#f5f5f5", mb: 1.5, fontFamily: "'DM Sans', Inter, sans-serif" }}>Instant Indexing</Typography>
-            <Typography sx={{ fontSize: "0.92rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.75 }}>
-              ONNX-powered embedding delivers answers in milliseconds regardless of document length.
-            </Typography>
-          </Box>
-        </GCard>
-      </Box>
-    </Container>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: EASE }}
+            style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}
+          >
+            <button className="btn-primary" onClick={() => navigate(user ? "/chat" : "/signup")} style={{ fontSize: "0.95rem", padding: "16px 32px" }}>
+              {user ? "Open Workspace" : "Start for free"}
+              <ChevronRight size={16} />
+            </button>
+            <button className="btn-secondary" onClick={() => document.querySelector("#how")?.scrollIntoView({ behavior: "smooth" })} style={{ fontSize: "0.95rem" }}>
+              See how it works
+            </button>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+            style={{ marginTop: 40, display: "flex", alignItems: "center", gap: 20 }}
+          >
+            <div style={{ display: "flex" }}>
+              {["#6366f1","#ec4899","#f59e0b","#10b981","#2563eb"].map((c, i) => (
+                <div key={i} style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: "2px solid #fff", marginLeft: i > 0 ? -8 : 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 10, color: "#fff", fontWeight: 700 }}>{String.fromCharCode(65 + i)}</span>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div style={{ display: "flex", gap: 2, marginBottom: 2 }}>
+                {[1,2,3,4,5].map(i => <Star key={i} size={13} fill="#f59e0b" color="#f59e0b" />)}
+              </div>
+              <span style={{ fontSize: 13, color: "#64748b" }}>Trusted by <strong style={{ color: "#0f172a" }}>2,400+</strong> researchers & analysts</span>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Right */}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <DashboardMockup />
+        </div>
+      </div>
+    </section>
   );
 }
 
-/* ── Use cases ────────────────────────────────────────────────────────── */
-const USE_CASES = [
-  { icon: "📄", title: "Research Papers",   desc: "Extract methodology, results and conclusions from academic papers instantly." },
-  { icon: "⚖️", title: "Legal Documents",   desc: "Navigate contracts, identify key clauses and obligations in seconds." },
-  { icon: "🔧", title: "Technical Manuals", desc: "Query product specifications, troubleshooting guides and API documentation." },
-  { icon: "📊", title: "Business Reports",  desc: "Extract KPIs, forecasts and strategic insights from annual reports." },
-  { icon: "🎓", title: "Education",          desc: "Chat with textbooks, study guides and research material conversationally." },
-  { icon: "🏥", title: "Medical Literature", desc: "Review clinical studies, drug interactions and treatment protocols rapidly." },
-];
-
-function UseCasesSection() {
+/* ── Logo Cloud ───────────────────────────────────────────────────── */
+function LogoCloud() {
+  const logos = ["Notion","Linear","Vercel","Stripe","OpenAI","Figma","Anthropic","Perplexity"];
   return (
-    <Container maxWidth="xl" sx={{ py: { xs: 10, md: 16 } }}>
-      <Box textAlign="center" mb={8}>
-        <Label>Use Cases</Label>
-        <Typography variant="h2" sx={{ fontSize: { xs: "2.2rem", md: "3.6rem" }, fontWeight: 900, letterSpacing: "-0.04em", color: "#f5f5f5", fontFamily: "'DM Sans', Inter, sans-serif" }}>
-          Built for every domain
-        </Typography>
-      </Box>
-      <Grid container spacing={2.5}>
-        {USE_CASES.map((uc, i) => (
-          <Grid item xs={12} sm={6} md={4} key={i}>
+    <section style={{ padding: "60px 0", borderTop: "1px solid #f1f5f9", borderBottom: "1px solid #f1f5f9", background: "#fafbfc" }}>
+      <div className="container-xl">
+        <p style={{ textAlign: "center", fontSize: 13, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 36 }}>
+          Loved by teams at
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 48 }}>
+          {logos.map((name) => (
             <motion.div
-              initial={{ opacity: 0, y: 22 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ delay: i * 0.055, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              whileHover={{ y: -4 }}
-              style={{
-                background: "rgba(22,22,22,0.7)", backdropFilter: "blur(20px)",
-                border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14,
-                padding: "26px 26px", height: "100%",
-                transition: "border-color 0.18s, background 0.18s",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,106,61,0.18)"; e.currentTarget.style.background = "rgba(255,106,61,0.025)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; e.currentTarget.style.background = "rgba(22,22,22,0.7)"; }}
+              key={name}
+              whileHover={{ scale: 1.05 }}
+              className="logo-item"
+              style={{ cursor: "default" }}
             >
-              <Typography sx={{ fontSize: "1.75rem", mb: 1.5 }}>{uc.icon}</Typography>
-              <Typography sx={{ fontWeight: 700, fontSize: "0.975rem", color: "#f5f5f5", mb: 0.75, fontFamily: "'DM Sans', Inter, sans-serif" }}>{uc.title}</Typography>
-              <Typography sx={{ fontSize: "0.84rem", color: "rgba(255,255,255,0.33)", lineHeight: 1.65 }}>{uc.desc}</Typography>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "#64748b", letterSpacing: "-0.02em" }}>{name}</span>
             </motion.div>
-          </Grid>
-        ))}
-      </Grid>
-    </Container>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
-/* ── Social proof / stats bar ────────────────────────────────────────── */
-function StatsBar() {
-  const STATS = [
-    { value: "384-dim", label: "Vector dimensions" },
-    { value: "<100ms",  label: "Retrieval latency" },
-    { value: "50 MB",   label: "Max PDF size" },
-    { value: "RAG",     label: "Architecture" },
-    { value: "0 disk",  label: "Storage footprint" },
+/* ── Stats Section ────────────────────────────────────────────────── */
+function StatsSection() {
+  const stats = [
+    { label: "Documents Analyzed",  val: 2847000, suffix: "+", prefix: "" },
+    { label: "Enterprise Users",    val: 100,     suffix: "+", prefix: "" },
+    { label: "Uptime SLA",          val: 99,      suffix: ".9%",prefix:""},
+    { label: "Avg User Rating",     val: 49,      suffix: "★",  prefix:"" },
+  ];
+  const display = ["2.8M+","100+","99.9%","4.9★"];
+  return (
+    <section style={{ padding: "120px 0", background: "#fff" }}>
+      <div className="container-xl">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
+          {stats.map((s, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.6, ease: EASE }}
+              style={{
+                textAlign: "center", padding: "48px 32px",
+                borderRight: i < 3 ? "1px solid #f1f5f9" : "none",
+              }}
+            >
+              <div style={{ fontSize: "clamp(40px,4vw,56px)", fontWeight: 900, letterSpacing: "-0.04em", background: "linear-gradient(135deg,#2563eb,#7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.1, marginBottom: 8 }}>
+                {display[i]}
+              </div>
+              <div style={{ fontSize: 15, color: "#64748b", fontWeight: 500 }}>{s.label}</div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── How It Works ─────────────────────────────────────────────────── */
+function HowSection() {
+  const steps = [
+    { n: "01", icon: <Upload size={24} />, title: "Upload your PDF", desc: "Drag and drop any PDF — digital or scanned. Up to 50 MB. Our pipeline handles OCR, chunking, and indexing automatically in seconds." },
+    { n: "02", icon: <Cpu size={24} />, title: "Instant AI indexing", desc: "Each page is split into semantic chunks, embedded into 384-dimensional vectors using ONNX fastembed, and stored in-memory for sub-100ms retrieval." },
+    { n: "03", icon: <MessageSquare size={24} />, title: "Chat with your document", desc: "Ask anything in plain language. BrainDoc retrieves the most relevant context and generates a precise, grounded answer with source citations." },
   ];
   return (
-    <Box sx={{ py: { xs: 6, md: 8 }, borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-      <Container maxWidth="xl">
-        <Box sx={{
-          display: "flex", flexWrap: "wrap", justifyContent: "center",
-          gap: { xs: 4, md: 0 },
-        }}>
-          {STATS.map((s, i) => (
-            <Box key={i} sx={{
-              flex: "1 1 160px", textAlign: "center",
-              borderRight: i < STATS.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
-              px: 3,
-            }}>
-              <Typography sx={{ fontSize: { xs: "1.6rem", md: "2rem" }, fontWeight: 900, color: A, letterSpacing: "-0.03em", lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
-                {s.value}
-              </Typography>
-              <Typography sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", mt: 0.75, letterSpacing: "0.04em" }}>
-                {s.label}
-              </Typography>
-            </Box>
+    <section id="how" style={{ padding: "160px 0", background: "#fafbfc" }}>
+      <div className="container-xl">
+        <div style={{ textAlign: "center", marginBottom: 80 }}>
+          <Badge>How it works</Badge>
+          <motion.h2 className="section-title" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: EASE }} style={{ marginBottom: 16 }}>
+            Three steps to document intelligence
+          </motion.h2>
+          <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1, duration: 0.6, ease: EASE }} style={{ fontSize: 20, color: "#64748b", maxWidth: 520, margin: "0 auto" }}>
+            From upload to insight in under 5 seconds.
+          </motion.p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24 }}>
+          {steps.map((s, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 32 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.12, duration: 0.6, ease: EASE }}
+              whileHover={{ y: -6, boxShadow: "0 20px 60px rgba(0,0,0,0.1)", borderColor: "#cbd5e1" }}
+              style={{ background: "#fff", borderRadius: 28, border: "1px solid #e2e8f0", padding: 40, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", transition: "all 0.3s" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: "linear-gradient(135deg,rgba(37,99,235,0.08),rgba(124,58,237,0.08))", border: "1px solid rgba(37,99,235,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb" }}>
+                  {s.icon}
+                </div>
+                <span style={{ fontSize: 48, fontWeight: 900, color: "#f1f5f9", letterSpacing: "-0.04em", lineHeight: 1 }}>{s.n}</span>
+              </div>
+              <h3 style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", marginBottom: 12, letterSpacing: "-0.025em" }}>{s.title}</h3>
+              <p style={{ fontSize: 16, color: "#64748b", lineHeight: 1.7 }}>{s.desc}</p>
+            </motion.div>
           ))}
-        </Box>
-      </Container>
-    </Box>
+        </div>
+      </div>
+    </section>
   );
 }
 
-/* ── CTA ─────────────────────────────────────────────────────────────── */
-function CinematicCTA() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+/* ── Features Grid ────────────────────────────────────────────────── */
+function FeaturesSection() {
+  const features = [
+    { icon: <Search size={22}/>, title: "Semantic Search", desc: "Goes beyond keywords — understands meaning, synonyms, and context across your entire document." },
+    { icon: <Brain size={22}/>, title: "RAG Pipeline", desc: "Retrieval-Augmented Generation grounds every answer in your document. No hallucinations, ever." },
+    { icon: <Zap size={22}/>, title: "Sub-100ms Retrieval", desc: "ONNX-powered FAISS indexing returns relevant chunks in milliseconds, regardless of document size." },
+    { icon: <Shield size={22}/>, title: "Ephemeral Privacy", desc: "Everything runs in-memory. No vectors saved to disk. Your data is gone the moment your session ends." },
+    { icon: <MessageSquare size={22}/>, title: "Multi-turn Chat", desc: "Ask follow-up questions naturally. BrainDoc maintains full conversation context across turns." },
+    { icon: <Globe size={22}/>, title: "Multi-Provider AI", desc: "Switch between Groq, Gemini, OpenAI, or our local ONNX engine — your choice, your keys." },
+  ];
   return (
-    <Box sx={{ position: "relative", py: { xs: 14, md: 22 }, overflow: "hidden" }}>
-      <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "60%", height: "100%", background: "radial-gradient(ellipse, rgba(255,106,61,0.07) 0%, transparent 65%)", pointerEvents: "none" }} />
-      <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "rgba(255,255,255,0.05)" }} />
-      <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "1px", background: "rgba(255,255,255,0.05)" }} />
+    <section id="features" style={{ padding: "160px 0", background: "#fff" }}>
+      <div className="container-xl">
+        <div style={{ textAlign: "center", marginBottom: 80 }}>
+          <Badge>Features</Badge>
+          <motion.h2 className="section-title" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: EASE }} style={{ marginBottom: 16 }}>
+            Everything you need to<br /><span className="gradient-text">unlock your documents</span>
+          </motion.h2>
+          <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.15 }} style={{ fontSize: 20, color: "#64748b", maxWidth: 500, margin: "0 auto" }}>
+            Purpose-built for intelligence. Every feature designed to get you the right answer, faster.
+          </motion.p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24 }}>
+          {features.map((f, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08, duration: 0.55, ease: EASE }}
+              style={{ background: "#fff", borderRadius: 28, border: "1px solid #e2e8f0", padding: 40, cursor: "default", transition: "all 0.3s", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
+              whileHover={{ y: -6, borderColor: "#93c5fd", boxShadow: "0 12px 40px rgba(37,99,235,0.1)" }}
+            >
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                style={{ width: 52, height: 52, borderRadius: 14, background: "linear-gradient(135deg,rgba(37,99,235,0.08),rgba(124,58,237,0.06))", border: "1px solid rgba(37,99,235,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb", marginBottom: 24 }}
+              >
+                {f.icon}
+              </motion.div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>{f.title}</h3>
+                <motion.div whileHover={{ x: 3 }} style={{ color: "#2563eb", display: "flex" }}><ChevronRight size={16} /></motion.div>
+              </div>
+              <p style={{ fontSize: 15, color: "#64748b", lineHeight: 1.65 }}>{f.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
-      <Container maxWidth="md" sx={{ position: "relative", zIndex: 1, textAlign: "center" }}>
+/* ── Use Cases ────────────────────────────────────────────────────── */
+function UseCasesSection() {
+  const cases = [
+    { icon: "📄", title: "Research Papers", desc: "Extract methodology, key findings and conclusions from academic papers in seconds." },
+    { icon: "⚖️", title: "Legal Documents", desc: "Identify clauses, obligations and risks in contracts with precision." },
+    { icon: "🔧", title: "Technical Docs",  desc: "Query API documentation, manuals and specifications conversationally." },
+    { icon: "📊", title: "Business Reports",desc: "Pull KPIs, forecasts and strategic insights from dense reports instantly." },
+    { icon: "🎓", title: "Education",       desc: "Chat with textbooks and study guides to accelerate learning." },
+    { icon: "🏥", title: "Medical Lit",    desc: "Review clinical studies and drug interactions rapidly and safely." },
+  ];
+  return (
+    <section id="usecases" style={{ padding: "160px 0", background: "#fafbfc" }}>
+      <div className="container-xl">
+        <div style={{ textAlign: "center", marginBottom: 80 }}>
+          <Badge>Use Cases</Badge>
+          <motion.h2 className="section-title" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: EASE }}>
+            Built for every domain
+          </motion.h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+          {cases.map((c, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.07, duration: 0.5, ease: EASE }}
+              whileHover={{ y: -5, borderColor: "#93c5fd", boxShadow: "0 12px 40px rgba(37,99,235,0.08)" }}
+              style={{ background: "#fff", borderRadius: 24, border: "1px solid #e2e8f0", padding: 32, cursor: "default", transition: "all 0.28s" }}
+            >
+              <span style={{ fontSize: 28, display: "block", marginBottom: 14 }}>{c.icon}</span>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", marginBottom: 8, letterSpacing: "-0.02em" }}>{c.title}</h3>
+              <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>{c.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Testimonials ─────────────────────────────────────────────────── */
+function TestimonialsSection() {
+  const testimonials = [
+    { name: "Sarah Chen", role: "Research Scientist, BioLab", quote: "BrainDoc completely changed how I read papers. I can ask it questions instead of ctrl-F-ing for hours. The accuracy is genuinely impressive.", stars: 5 },
+    { name: "Marcus Reid", role: "M&A Analyst, Summit Capital", quote: "We review 50+ contracts a month. BrainDoc cuts that time in half. The zero-hallucination guarantee is critical for our use case.", stars: 5 },
+    { name: "Priya Nair", role: "Product Manager, Techflow", quote: "I use it for competitor analysis reports. The multi-turn chat means I can dig deeper and deeper without losing context. It's like having a brilliant intern.", stars: 5 },
+    { name: "James Wolff", role: "PhD Student, MIT", quote: "This is the tool I wish existed years ago. Uploading 200-page dissertations and asking targeted questions — the retrieval is genuinely semantic, not keyword matching.", stars: 5 },
+    { name: "Elena Vasquez", role: "Legal Counsel, NovaCorp", quote: "Contract review went from 4 hours to 40 minutes. The citations in responses mean I can verify everything in seconds. Brilliant product.", stars: 5 },
+    { name: "David Kim", role: "Consultant, Deloitte", quote: "Every engagement involves massive reports. BrainDoc lets me extract the exact insights my clients need without reading 300 pages. Game-changer.", stars: 5 },
+  ];
+  return (
+    <section style={{ padding: "160px 0", background: "#fff" }}>
+      <div className="container-xl">
+        <div style={{ textAlign: "center", marginBottom: 80 }}>
+          <Badge>Testimonials</Badge>
+          <motion.h2 className="section-title" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: EASE }}>
+            Loved by knowledge workers
+          </motion.h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24 }}>
+          {testimonials.map((t, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08, duration: 0.55, ease: EASE }}
+              whileHover={{ y: -6, boxShadow: "0 16px 48px rgba(0,0,0,0.1)" }}
+              style={{ background: "#fff", borderRadius: 28, border: "1px solid #e2e8f0", padding: 36, boxShadow: "0 1px 3px rgba(0,0,0,0.05)", transition: "all 0.3s" }}
+            >
+              <div style={{ display: "flex", gap: 2, marginBottom: 20 }}>
+                {[1,2,3,4,5].map(s => <Star key={s} size={14} fill="#f59e0b" color="#f59e0b" />)}
+              </div>
+              <p style={{ fontSize: 15, color: "#334155", lineHeight: 1.7, marginBottom: 24, fontStyle: "italic" }}>"{t.quote}"</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: `linear-gradient(135deg,${["#6366f1","#ec4899","#f59e0b","#10b981","#2563eb","#7c3aed"][i % 6]},${["#8b5cf6","#f43f5e","#ef4444","#0ea5e9","#7c3aed","#2563eb"][i % 6]})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{t.name[0]}</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{t.name}</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8" }}>{t.role}</div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Pricing ──────────────────────────────────────────────────────── */
+function PricingSection() {
+  const plans = [
+    {
+      name: "Starter", price: "Free", period: "",
+      desc: "Perfect for individuals and researchers.",
+      features: ["5 documents/month", "50 queries/month", "Local AI (Brain Core)", "Standard support"],
+      cta: "Get started free", highlight: false,
+    },
+    {
+      name: "Pro", price: "$19", period: "/month",
+      desc: "For power users who need unlimited access.",
+      features: ["Unlimited documents", "Unlimited queries", "Groq / Gemini / OpenAI", "Priority support", "API access", "Advanced analytics"],
+      cta: "Start Pro trial", highlight: true,
+    },
+    {
+      name: "Enterprise", price: "Custom", period: "",
+      desc: "For teams and organizations at scale.",
+      features: ["Everything in Pro", "SSO / SAML", "Dedicated infrastructure", "SLA guarantee", "Custom integrations", "Dedicated success manager"],
+      cta: "Contact sales", highlight: false,
+    },
+  ];
+  return (
+    <section id="pricing" style={{ padding: "160px 0", background: "#fafbfc" }}>
+      <div className="container-xl">
+        <div style={{ textAlign: "center", marginBottom: 80 }}>
+          <Badge>Pricing</Badge>
+          <motion.h2 className="section-title" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: EASE }} style={{ marginBottom: 16 }}>
+            Simple, transparent pricing
+          </motion.h2>
+          <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.1 }} style={{ fontSize: 18, color: "#64748b" }}>
+            Start free. Scale when you're ready.
+          </motion.p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24, alignItems: "stretch" }}>
+          {plans.map((p, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.6, ease: EASE }}
+              style={{
+                background: p.highlight ? "#0f172a" : "#fff",
+                borderRadius: 32,
+                border: p.highlight ? "none" : "1px solid #e2e8f0",
+                padding: 40,
+                boxShadow: p.highlight ? "0 24px 80px rgba(15,23,42,0.25)" : "0 1px 3px rgba(0,0,0,0.05)",
+                position: "relative",
+                overflow: "hidden",
+                transition: "transform 0.3s",
+              }}
+              whileHover={{ y: -4 }}
+            >
+              {p.highlight && (
+                <>
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,rgba(37,99,235,0.15),rgba(124,58,237,0.15))", pointerEvents: "none" }} />
+                  <div style={{ position: "absolute", top: 20, right: 20, background: "linear-gradient(135deg,#2563eb,#7c3aed)", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", padding: "4px 12px", borderRadius: 999, textTransform: "uppercase" }}>Most Popular</div>
+                </>
+              )}
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: p.highlight ? "rgba(255,255,255,0.5)" : "#94a3b8", marginBottom: 12 }}>{p.name}</div>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 8 }}>
+                  <span style={{ fontSize: 48, fontWeight: 900, letterSpacing: "-0.04em", color: p.highlight ? "#fff" : "#0f172a", lineHeight: 1 }}>{p.price}</span>
+                  {p.period && <span style={{ fontSize: 16, color: p.highlight ? "rgba(255,255,255,0.5)" : "#94a3b8", marginBottom: 6 }}>{p.period}</span>}
+                </div>
+                <p style={{ fontSize: 14, color: p.highlight ? "rgba(255,255,255,0.55)" : "#64748b", marginBottom: 32, lineHeight: 1.6 }}>{p.desc}</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 36 }}>
+                  {p.features.map((f, j) => (
+                    <div key={j} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: 6, background: p.highlight ? "rgba(255,255,255,0.12)" : "rgba(37,99,235,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Check size={10} color={p.highlight ? "#fff" : "#2563eb"} />
+                      </div>
+                      <span style={{ fontSize: 14, color: p.highlight ? "rgba(255,255,255,0.8)" : "#334155" }}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  style={{
+                    width: "100%", padding: "14px 0", borderRadius: 999, border: "none",
+                    background: p.highlight ? "linear-gradient(135deg,#2563eb,#7c3aed)" : "#f1f5f9",
+                    color: p.highlight ? "#fff" : "#0f172a",
+                    fontWeight: 700, fontSize: 15, cursor: "pointer",
+                    boxShadow: p.highlight ? "0 8px 24px rgba(37,99,235,0.4)" : "none",
+                    transition: "all 0.25s",
+                    fontFamily: "inherit",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px) scale(1.01)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; }}
+                >
+                  {p.cta}
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── FAQ ──────────────────────────────────────────────────────────── */
+function FAQSection() {
+  const [open, setOpen] = useState(null);
+  const faqs = [
+    { q: "Is my data secure?", a: "Completely. BrainDoc uses ephemeral in-memory processing — your PDFs and embeddings are never written to disk. Everything is cleared when your session ends. We never store your document content." },
+    { q: "Which AI models are supported?", a: "BrainDoc supports Groq (Llama 3.3 70B), Google Gemini 1.5 Flash, OpenAI GPT-3.5, and our built-in local Brain Core engine powered by ONNX fastembed — no API key required for the local engine." },
+    { q: "What types of PDFs does it support?", a: "Both digital PDFs (with text layers) and scanned/image PDFs. Scanned documents are processed with Tesseract OCR at 300 DPI with contrast enhancement for maximum accuracy." },
+    { q: "How fast is the retrieval?", a: "Sub-100ms for semantic search. The ONNX-powered FAISS index operates entirely in-memory, so there's no disk I/O. Documents up to 50 MB are indexed in under 3 seconds." },
+    { q: "Can I chat with multiple documents?", a: "Each chat session is tied to one document for focused, precise answers. You can switch between documents at any time — each has its own independent conversation history." },
+    { q: "What happens if the AI can't find the answer?", a: "BrainDoc is designed to say 'The document doesn't contain enough information to answer this' rather than guess. You'll never get hallucinated responses that aren't grounded in your PDF." },
+  ];
+  return (
+    <section style={{ padding: "160px 0", background: "#fff" }}>
+      <div className="container-xl">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 80 }}>
+          <div>
+            <Badge>FAQ</Badge>
+            <motion.h2 className="section-title" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: EASE }} style={{ marginBottom: 16 }}>
+              Frequently asked questions
+            </motion.h2>
+            <p style={{ fontSize: 16, color: "#64748b", lineHeight: 1.7 }}>
+              Everything you need to know about BrainDoc.
+            </p>
+          </div>
+          <div>
+            {faqs.map((f, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06, duration: 0.5, ease: EASE }}
+                style={{ borderBottom: "1px solid #f1f5f9" }}
+              >
+                <button
+                  onClick={() => setOpen(open === i ? null : i)}
+                  style={{
+                    width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "24px 0", background: "none", border: "none", cursor: "pointer",
+                    fontFamily: "inherit", textAlign: "left",
+                  }}
+                >
+                  <span style={{ fontSize: 17, fontWeight: 600, color: "#0f172a", letterSpacing: "-0.01em", paddingRight: 24 }}>{f.q}</span>
+                  <motion.div animate={{ rotate: open === i ? 45 : 0 }} transition={{ duration: 0.25, ease: EASE }} style={{ flexShrink: 0, color: "#2563eb" }}>
+                    <Plus size={20} />
+                  </motion.div>
+                </button>
+                <AnimatePresence initial={false}>
+                  {open === i && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.35, ease: EASE }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <p style={{ fontSize: 15, color: "#64748b", lineHeight: 1.75, paddingBottom: 24 }}>{f.a}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── CTA Banner ───────────────────────────────────────────────────── */
+function CTABanner({ navigate, user }) {
+  return (
+    <section style={{ padding: "160px 0", background: "#fafbfc", position: "relative", overflow: "hidden" }}>
+      {/* Blobs */}
+      <div style={{ position: "absolute", top: -120, left: "15%", width: 400, height: 400, background: "radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: -100, right: "10%", width: 350, height: 350, background: "radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
+
+      <div className="container-xl" style={{ position: "relative", zIndex: 1 }}>
         <motion.div
-          initial={{ opacity: 0, y: 28 }}
+          initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.7, ease: EASE }}
+          style={{
+            background: "#0f172a",
+            borderRadius: 40,
+            padding: "80px 80px",
+            textAlign: "center",
+            position: "relative",
+            overflow: "hidden",
+          }}
         >
-          <Label>Get Started</Label>
-          <Typography variant="h2" sx={{
-            fontSize: { xs: "2.5rem", md: "4.2rem" },
-            fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.06, color: "#f5f5f5", mb: 2.5,
-            fontFamily: "'DM Sans', Inter, sans-serif",
-          }}>
-            Ready for<br />
-            <Box component="span" sx={{ color: A, textShadow: `0 0 60px ${AG}` }}>
-              semantic intelligence?
-            </Box>
-          </Typography>
-          <Typography sx={{ fontSize: "1rem", color: "rgba(255,255,255,0.33)", mb: 5, lineHeight: 1.75, maxWidth: 480, mx: "auto" }}>
-            Upload your first PDF and start asking questions in plain language. No API key needed to get started.
-          </Typography>
-          <Box display="flex" gap={2} justifyContent="center" flexWrap="wrap">
-            <motion.button
-              whileHover={{ scale: 1.04, boxShadow: "0 0 50px rgba(255,106,61,0.48)" }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => navigate(user ? "/chat" : "/signup")}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 10,
-                padding: "14px 38px", borderRadius: 10, border: "none",
-                background: A, color: "#fff",
-                fontWeight: 800, fontSize: "0.975rem",
-                cursor: "pointer", fontFamily: "'DM Sans', Inter, sans-serif",
-                boxShadow: "0 0 28px rgba(255,106,61,0.28)",
-                transition: "box-shadow 0.2s",
-              }}
+          {/* Inner gradient overlay */}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(37,99,235,0.15) 0%, rgba(124,58,237,0.15) 100%)", pointerEvents: "none" }} />
+          {/* Glowing orbs inside */}
+          <div style={{ position: "absolute", top: -80, left: "30%", width: 300, height: 300, background: "radial-gradient(circle, rgba(37,99,235,0.25) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", bottom: -80, right: "25%", width: 280, height: 280, background: "radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
+
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1, duration: 0.5, ease: EASE }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 999, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", marginBottom: 32 }}
             >
-              {user ? "Open Workspace" : "Start for Free"}
-              <KeyboardArrowRightOutlined />
-            </motion.button>
-            {!user && (
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e" }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.7)", letterSpacing: "0.05em" }}>No credit card required · Free forever</span>
+            </motion.div>
+
+            <h2 style={{ fontSize: "clamp(36px,4.5vw,64px)", fontWeight: 900, letterSpacing: "-0.04em", color: "#fff", lineHeight: 1.05, marginBottom: 20 }}>
+              Ready to unlock your<br />
+              <span style={{ background: "linear-gradient(135deg,#60a5fa,#a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                document intelligence?
+              </span>
+            </h2>
+
+            <p style={{ fontSize: 20, color: "rgba(255,255,255,0.55)", marginBottom: 48, maxWidth: 500, margin: "0 auto 48px" }}>
+              Join thousands of researchers, analysts, and professionals who use BrainDoc to work smarter.
+            </p>
+
+            <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
               <motion.button
-                whileHover={{ scale: 1.03, borderColor: "rgba(255,255,255,0.22)", color: "#f5f5f5" }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => navigate("/login")}
-                style={{
-                  padding: "14px 38px", borderRadius: 10,
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  background: "rgba(255,255,255,0.03)",
-                  color: "rgba(255,255,255,0.5)",
-                  fontWeight: 500, fontSize: "0.975rem",
-                  cursor: "pointer", fontFamily: "'DM Sans', Inter, sans-serif",
-                  transition: "border-color 0.2s, color 0.2s",
-                }}
+                whileHover={{ scale: 1.03, boxShadow: "0 12px 40px rgba(37,99,235,0.5)" }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate(user ? "/chat" : "/signup")}
+                style={{ padding: "16px 36px", borderRadius: 999, border: "none", background: "linear-gradient(135deg,#2563eb,#7c3aed)", color: "#fff", fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 8px 32px rgba(37,99,235,0.4)", transition: "all 0.25s", display: "flex", alignItems: "center", gap: 8 }}
+              >
+                {user ? "Open Workspace" : "Start analyzing for free"}
+                <ChevronRight size={18} />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02, background: "rgba(255,255,255,0.12)" }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => document.querySelector("#how")?.scrollIntoView({ behavior: "smooth" })}
+                style={{ padding: "16px 36px", borderRadius: 999, border: "1.5px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.8)", fontWeight: 600, fontSize: 16, cursor: "pointer", fontFamily: "inherit", transition: "all 0.25s" }}
               >
                 See how it works
               </motion.button>
-            )}
-          </Box>
+            </div>
+          </div>
         </motion.div>
-      </Container>
-    </Box>
+      </div>
+    </section>
   );
 }
 
-/* ── MAIN ────────────────────────────────────────────────────────────── */
+/* ── Footer ───────────────────────────────────────────────────────── */
+function Footer({ navigate }) {
+  const cols = [
+    { heading: "Product",  links: ["Features","How it works","Pricing","Changelog","Roadmap"] },
+    { heading: "Use Cases",links: ["Research","Legal","Enterprise","Education","Healthcare"] },
+    { heading: "Company",  links: ["About","Blog","Careers","Press","Contact"] },
+    { heading: "Legal",    links: ["Privacy","Terms","Security","Cookies"] },
+  ];
+  return (
+    <footer style={{ background: "#0f172a", color: "rgba(255,255,255,0.55)", padding: "80px 0 40px" }}>
+      <div className="container-xl">
+        {/* Top row */}
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 48, marginBottom: 64 }}>
+          {/* Brand */}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg,#2563eb,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8L7 12L13 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <span style={{ fontWeight: 800, fontSize: "1.05rem", color: "#fff", letterSpacing: "-0.025em" }}>Brain<span style={{ color: "#60a5fa" }}>Doc</span></span>
+            </div>
+            <p style={{ fontSize: 14, lineHeight: 1.75, maxWidth: 260, color: "rgba(255,255,255,0.45)", marginBottom: 24 }}>
+              AI-powered document intelligence. Upload any PDF and chat with it using semantic search and RAG.
+            </p>
+            {/* Newsletter */}
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type="email"
+                placeholder="your@email.com"
+                style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#fff", fontSize: 13, fontFamily: "inherit", outline: "none" }}
+              />
+              <button style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#2563eb,#7c3aed)", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                Subscribe
+              </button>
+            </div>
+          </div>
+
+          {/* Link columns */}
+          {cols.map((col) => (
+            <div key={col.heading}>
+              <h4 style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: 20 }}>{col.heading}</h4>
+              <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
+                {col.links.map((l) => (
+                  <li key={l}>
+                    <a href="#" style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", textDecoration: "none", transition: "color 0.2s" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}
+                    >{l}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom row */}
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 32, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>
+            © {new Date().getFullYear()} BrainDoc. All rights reserved.
+          </p>
+          <div style={{ display: "flex", gap: 20 }}>
+            {["Twitter","GitHub","LinkedIn","Discord"].map((s) => (
+              <a key={s} href="#" style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", textDecoration: "none", transition: "color 0.2s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.35)"; }}
+              >{s}</a>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>
+            FastAPI · FAISS · ONNX · React
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ── Main export ──────────────────────────────────────────────────── */
 export default function HomePage() {
-  const { scrollYProgress } = useScroll();
-  const opacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
-    <Box sx={{ position: "relative", zIndex: 1, bgcolor: "#0a0a0a", minHeight: "100vh", overflowX: "hidden" }}>
-      <motion.div style={{ opacity, position: "relative", zIndex: 10 }}>
-        <SplineHero />
-      </motion.div>
-
-      <Box sx={{ position: "relative", zIndex: 20 }}>
-        <HowItWorksSection />
-        <StatsBar />
-        <PipelineSection />
-        <BentoSection />
-        <UseCasesSection />
-        <CinematicCTA />
-      </Box>
-
-      <Box sx={{ position: "relative", zIndex: 30, background: "#0a0a0a" }}>
-        <HoverFooter />
-      </Box>
-    </Box>
+    <div style={{ background: "#fff", overflowX: "hidden" }}>
+      <HeroSection navigate={navigate} user={user} />
+      <LogoCloud />
+      <StatsSection />
+      <HowSection />
+      <FeaturesSection />
+      <UseCasesSection />
+      <TestimonialsSection />
+      <PricingSection />
+      <FAQSection />
+      <CTABanner navigate={navigate} user={user} />
+      <Footer navigate={navigate} />
+    </div>
   );
 }

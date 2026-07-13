@@ -1,14 +1,14 @@
 import React, { useState } from "react";
-import { Box, Typography, Tooltip, CircularProgress } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
-import { PictureAsPdfOutlined, DeleteOutlined, CheckCircleOutlined, ErrorOutlined, HourglassEmptyOutlined } from "@mui/icons-material";
+import { FileText, Trash2, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { deleteDocument } from "../api/documents";
 
-const ACCENT = "#ff6a3d";
-const STATUS = {
-  ready:      { icon: <CheckCircleOutlined sx={{ fontSize: 10 }} />, color: "#22c55e" },
-  processing: { icon: <HourglassEmptyOutlined sx={{ fontSize: 10 }} />, color: "#f59e0b" },
-  error:      { icon: <ErrorOutlined sx={{ fontSize: 10 }} />, color: "#ef4444" },
+const P = "#2563eb"; // primary blue
+
+const STATUS_CONFIG = {
+  ready:      { icon: <CheckCircle size={10} />, color: "#10b981" },
+  processing: { icon: <Clock size={10} />,       color: "#f59e0b" },
+  error:      { icon: <AlertCircle size={10} />, color: "#ef4444" },
 };
 
 function fmt(bytes) {
@@ -29,119 +29,113 @@ export default function DocumentSidebar({ documents, selected, onSelect, onDelet
   };
 
   return (
-    <Box sx={{
-      width: 248, flexShrink: 0,
-      borderRight: "1px solid rgba(255,255,255,0.05)",
+    <div style={{
+      width: 260, flexShrink: 0,
+      borderRight: "1px solid #f1f5f9",
       display: "flex", flexDirection: "column",
-      background: "rgba(255,255,255,0.015)",
-      backdropFilter: "blur(20px)",
-      height: "100%",
+      background: "#fafbfc", height: "100%",
     }}>
       {/* Header */}
-      <Box sx={{
-        px: 2.5, py: 1.75,
-        borderBottom: "1px solid rgba(255,255,255,0.04)",
-        display: "flex", alignItems: "center", gap: 1,
-      }}>
-        <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: ACCENT, boxShadow: `0 0 6px ${ACCENT}`, flexShrink: 0 }} />
-        <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.25)", textTransform: "uppercase" }}>
+      <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #f1f5f9" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#94a3b8", margin: 0 }}>
           Documents
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {documents.length === 0 ? (
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", p: 3, textAlign: "center" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
           <motion.div animate={{ y: [-3, 3, -3] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
-            <PictureAsPdfOutlined sx={{ fontSize: 32, color: "rgba(255,255,255,0.07)", mb: 1.5 }} />
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+              <FileText size={20} color="#94a3b8" />
+            </div>
           </motion.div>
-          <Typography sx={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.2)", lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.6, margin: 0 }}>
             No documents yet.<br />Upload a PDF to begin.
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ) : (
-        <Box sx={{ flex: 1, overflow: "auto", py: 1 }}>
+        <div style={{ flex: 1, overflow: "auto", padding: "8px 8px" }}>
           <AnimatePresence>
             {documents.map((doc, i) => {
-              const sc = STATUS[doc.status] || STATUS.processing;
+              const sc = STATUS_CONFIG[doc.status] || STATUS_CONFIG.processing;
               const isSel = selected?.id === doc.id;
               const isHov = hovered === doc.id;
 
               return (
                 <motion.div
                   key={doc.id}
-                  initial={{ opacity: 0, x: -10 }}
+                  initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ delay: i * 0.04, duration: 0.3 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ delay: i * 0.04, duration: 0.28 }}
                 >
-                  <Box
+                  <div
                     onClick={() => onSelect(doc)}
                     onMouseEnter={() => setHovered(doc.id)}
                     onMouseLeave={() => setHovered(null)}
-                    sx={{
-                      mx: 1, mb: 0.5, px: 1.5, py: 1.2, borderRadius: "9px",
-                      cursor: "pointer", position: "relative",
-                      background: isSel
-                        ? "rgba(255,106,61,0.08)"
-                        : isHov ? "rgba(255,255,255,0.03)" : "transparent",
-                      border: "1px solid",
-                      borderColor: isSel ? "rgba(255,106,61,0.2)" : "transparent",
-                      transition: "all 0.15s ease",
+                    style={{
+                      padding: "10px 12px", borderRadius: 10, cursor: "pointer",
+                      position: "relative", marginBottom: 2,
+                      background: isSel ? "rgba(37,99,235,0.06)" : isHov ? "#f8fafc" : "transparent",
+                      border: `1px solid ${isSel ? "rgba(37,99,235,0.2)" : "transparent"}`,
+                      transition: "all 0.15s",
                     }}
                   >
-                    <Box display="flex" alignItems="flex-start" gap={1.25} pr={2.5}>
-                      <PictureAsPdfOutlined sx={{ fontSize: 15, color: isSel ? ACCENT : "rgba(255,255,255,0.2)", mt: 0.1, flexShrink: 0 }} />
-                      <Box minWidth={0} flex={1}>
-                        <Typography sx={{
-                          fontSize: "0.78rem", fontWeight: 600, lineHeight: 1.3,
-                          color: isSel ? "#f5f5f5" : "rgba(255,255,255,0.55)",
-                        }} noWrap>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, paddingRight: 24 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                        background: isSel ? "rgba(37,99,235,0.1)" : "#f1f5f9",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <FileText size={14} color={isSel ? P : "#64748b"} />
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <p style={{
+                          fontSize: 13, fontWeight: 600, lineHeight: 1.3, margin: "0 0 3px",
+                          color: isSel ? "#0f172a" : "#334155",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
                           {doc.original_name}
-                        </Typography>
-                        <Box display="flex" alignItems="center" gap={0.5} mt={0.35}>
-                          <Box sx={{ color: sc.color, display: "flex" }}>{sc.icon}</Box>
-                          <Typography sx={{ fontSize: "0.65rem", color: doc.status === "error" ? "#ef4444" : "rgba(255,255,255,0.2)" }}>
+                        </p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <span style={{ color: sc.color, display: "flex" }}>{sc.icon}</span>
+                          <span style={{ fontSize: 11, color: doc.status === "error" ? "#ef4444" : "#94a3b8" }}>
                             {doc.status === "error" ? "Failed — re-upload"
                               : doc.status === "processing" ? "Indexing..."
                               : `${fmt(doc.size)} · ${doc.chunk_count} chunks`}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
                     <AnimatePresence>
                       {(isHov || isSel) && (
                         <motion.div
                           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                          style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)" }}
+                          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)" }}
                         >
                           {deleting === doc.id ? (
-                            <CircularProgress size={11} sx={{ color: ACCENT }} />
+                            <div style={{ width: 14, height: 14, border: "2px solid #e2e8f0", borderTopColor: P, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                           ) : (
-                            <Tooltip title="Delete">
-                              <Box
-                                onClick={(e) => handleDelete(e, doc.id)}
-                                sx={{
-                                  color: "rgba(255,255,255,0.15)", cursor: "pointer",
-                                  display: "flex",
-                                  "&:hover": { color: "#ef4444" },
-                                  transition: "color 0.15s",
-                                }}
-                              >
-                                <DeleteOutlined sx={{ fontSize: 13 }} />
-                              </Box>
-                            </Tooltip>
+                            <button
+                              onClick={(e) => handleDelete(e, doc.id)}
+                              style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 2, display: "flex", borderRadius: 4, transition: "color 0.15s" }}
+                              onMouseEnter={(e) => { e.currentTarget.style.color = "#ef4444"; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.color = "#cbd5e1"; }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
                           )}
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </Box>
+                  </div>
                 </motion.div>
               );
             })}
           </AnimatePresence>
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

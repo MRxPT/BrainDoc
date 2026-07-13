@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Box, Typography, LinearProgress, Alert } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
-import { CloudUploadOutlined, PictureAsPdfOutlined, CloseOutlined, CheckCircleOutlined, AutoAwesomeOutlined } from "@mui/icons-material";
+import { Upload, FileText, X, CheckCircle, Sparkles } from "lucide-react";
 import { uploadDocument } from "../api/documents";
 
-const ACCENT = "#ff6a3d";
+const P = "#2563eb";
+const EASE = [0.22, 0.61, 0.36, 1];
+
 const STAGES = [
   "Extracting Document Intelligence",
   "Generating Vector Embeddings",
@@ -23,82 +24,64 @@ function ProcessingOverlay({ progress }) {
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      style={{
-        position: "absolute", inset: 0, borderRadius: 20,
-        background: "rgba(10,10,10,0.97)", backdropFilter: "blur(20px)",
-        display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", gap: 24, padding: 32, zIndex: 10,
-      }}
-    >
-      <Box sx={{ position: "relative", width: 72, height: 72 }}>
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          style={{
-            position: "absolute", inset: -12, borderRadius: "50%",
-            background: `radial-gradient(circle, rgba(255,106,61,0.2) 0%, transparent 70%)`,
-          }}
-        />
-        <Box sx={{
-          width: 72, height: 72, borderRadius: "18px",
-          background: "rgba(255,106,61,0.08)",
-          border: "1px solid rgba(255,106,61,0.2)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 0 30px rgba(255,106,61,0.15)",
-        }}>
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
-            <AutoAwesomeOutlined sx={{ fontSize: 30, color: ACCENT }} />
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "absolute", inset: 0, borderRadius: 20, background: "rgba(255,255,255,0.97)", backdropFilter: "blur(12px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, padding: 32, zIndex: 10 }}>
+      <div style={{ position: "relative", width: 64, height: 64 }}>
+        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 2, repeat: Infinity }}
+          style={{ position: "absolute", inset: -10, borderRadius: "50%", background: "radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)" }} />
+        <div style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg,rgba(37,99,235,0.08),rgba(124,58,237,0.06))", border: "1px solid rgba(37,99,235,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}>
+            <Sparkles size={26} color={P} />
           </motion.div>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Box textAlign="center">
+      <div style={{ textAlign: "center" }}>
         <AnimatePresence mode="wait">
-          <motion.div key={stageIdx} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.3 }}>
-            <Typography sx={{ fontSize: "0.85rem", fontWeight: 700, color: ACCENT, mb: 0.5 }}>{STAGES[stageIdx]}</Typography>
-          </motion.div>
+          <motion.p key={stageIdx} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.25 }}
+            style={{ fontSize: 14, fontWeight: 700, color: P, margin: "0 0 4px" }}>{STAGES[stageIdx]}</motion.p>
         </AnimatePresence>
-        <Typography sx={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.2)" }}>Processing your document...</Typography>
-      </Box>
+        <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>Processing your document...</p>
+      </div>
 
-      <Box sx={{ width: "100%", maxWidth: 280 }}>
-        <LinearProgress variant="determinate" value={progress} sx={{
-          borderRadius: 2, height: 2,
-          bgcolor: "rgba(255,255,255,0.05)",
-          "& .MuiLinearProgress-bar": { background: ACCENT, borderRadius: 2 },
-        }} />
-        <Typography sx={{ fontSize: "0.65rem", color: "rgba(255,106,61,0.4)", mt: 0.75, textAlign: "right" }}>{progress}%</Typography>
-      </Box>
+      <div style={{ width: "100%", maxWidth: 260 }}>
+        <div style={{ height: 4, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
+          <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5 }}
+            style={{ height: "100%", borderRadius: 99, background: `linear-gradient(90deg,${P},#7c3aed)` }} />
+        </div>
+        <p style={{ fontSize: 11, color: P, textAlign: "right", margin: "4px 0 0", fontFamily: "monospace", fontWeight: 600 }}>{progress}%</p>
+      </div>
 
-      <Box display="flex" gap={1}>
+      <div style={{ display: "flex", gap: 6 }}>
         {STAGES.map((_, i) => (
-          <motion.div key={i} animate={{ scale: i === stageIdx ? 1.3 : 1, opacity: i <= stageIdx ? 1 : 0.2 }} transition={{ duration: 0.3 }}>
-            <Box sx={{ width: 5, height: 5, borderRadius: "50%", background: i <= stageIdx ? ACCENT : "rgba(255,255,255,0.1)", boxShadow: i === stageIdx ? `0 0 8px ${ACCENT}` : "none" }} />
+          <motion.div key={i} animate={{ scale: i === stageIdx ? 1.3 : 1, opacity: i <= stageIdx ? 1 : 0.25 }} transition={{ duration: 0.25 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: i <= stageIdx ? P : "#e2e8f0", boxShadow: i === stageIdx ? `0 0 8px rgba(37,99,235,0.5)` : "none" }} />
           </motion.div>
         ))}
-      </Box>
+      </div>
     </motion.div>
   );
 }
 
 export default function UploadDialog({ open, onClose, onUploaded }) {
-  const [file, setFile]           = useState(null);
-  const [progress, setProgress]   = useState(0);
+  const [file, setFile] = useState(null);
+  const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
-  const [error, setError]         = useState("");
-  const [dragging, setDragging]   = useState(false);
+  const [error, setError] = useState("");
+  const [dragging, setDragging] = useState(false);
   const inputRef = useRef(null);
 
   const openPicker = () => { if (inputRef.current) { inputRef.current.value = ""; inputRef.current.click(); } };
+
   const handleFile = (f) => {
     if (!f) return;
     if (f.type !== "application/pdf") { setError("Only PDF files are supported."); return; }
-    if (f.size > 50 * 1024 * 1024)   { setError("File must be under 50 MB."); return; }
+    if (f.size > 50 * 1024 * 1024) { setError("File must be under 50 MB."); return; }
     setError(""); setFile(f);
   };
+
   const handleDrop = (e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); };
+
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true); setError("");
@@ -111,6 +94,7 @@ export default function UploadDialog({ open, onClose, onUploaded }) {
       setUploading(false); setProgress(0);
     }
   };
+
   const handleClose = () => {
     if (uploading) return;
     setFile(null); setError(""); setProgress(0); onClose();
@@ -122,134 +106,99 @@ export default function UploadDialog({ open, onClose, onUploaded }) {
     <>
       <input ref={inputRef} type="file" accept="application/pdf"
         style={{ position: "fixed", top: -9999, left: -9999, opacity: 0, pointerEvents: "none" }}
-        onChange={(e) => handleFile(e.target.files[0])}
-      />
+        onChange={(e) => handleFile(e.target.files[0])} />
+
       <AnimatePresence>
-        <motion.div
-          key="bd"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        <motion.div key="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
-          style={{
-            position: "fixed", inset: 0, zIndex: 2000,
-            background: "rgba(0,0,0,0.85)", backdropFilter: "blur(16px)",
-            display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-          }}
-        >
-          <motion.div
-            key="card"
-            initial={{ opacity: 0, scale: 0.92, y: 24 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 16 }}
-            transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              width: "100%", maxWidth: 500,
-              background: "rgba(16,16,16,0.97)",
-              backdropFilter: "blur(40px)",
-              border: "1px solid rgba(255,255,255,0.07)",
-              borderRadius: 20, padding: 32, position: "relative",
-              boxShadow: "0 24px 80px rgba(0,0,0,0.7)",
-            }}
-          >
-            {/* Top accent */}
-            <Box sx={{ position: "absolute", top: 0, left: "8%", right: "8%", height: "1px", background: `linear-gradient(90deg,transparent,rgba(255,106,61,0.4),transparent)`, pointerEvents: "none" }} />
+          style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(15,23,42,0.4)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+
+          <motion.div key="modal" initial={{ opacity: 0, scale: 0.93, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.38, ease: EASE }}
+            style={{ width: "100%", maxWidth: 500, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0", padding: 32, position: "relative", boxShadow: "0 20px 80px rgba(15,23,42,0.2)" }}>
 
             <AnimatePresence>
               {uploading && <ProcessingOverlay progress={progress} />}
             </AnimatePresence>
 
-            <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
-              <Box>
-                <Typography variant="h5" fontWeight={800} mb={0.25} sx={{ color: "#f5f5f5" }}>Upload Document</Typography>
-                <Typography sx={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.25)" }}>PDF · Max 50 MB · Digital or scanned</Typography>
-              </Box>
-              <motion.button
-                whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+              <div>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: "0 0 3px", letterSpacing: "-0.02em" }}>Upload Document</h2>
+                <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>PDF · Max 50 MB · Digital or scanned</p>
+              </div>
+              <motion.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.94 }}
                 onClick={handleClose} disabled={uploading}
-                style={{
-                  background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
-                  borderRadius: 8, width: 30, height: 30, cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "rgba(255,255,255,0.3)",
-                }}>
-                <CloseOutlined style={{ fontSize: 15 }} />
+                style={{ width: 32, height: 32, borderRadius: 9, border: "1.5px solid #e2e8f0", background: "#f8fafc", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", transition: "all 0.15s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#ef4444"; e.currentTarget.style.color = "#ef4444"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#94a3b8"; }}>
+                <X size={14} />
               </motion.button>
-            </Box>
+            </div>
 
-            {error && (
-              <Alert severity="error" sx={{ mb: 2, borderRadius: 2, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5", "& .MuiAlert-icon": { color: "#ef4444" } }}>
-                {error}
-              </Alert>
-            )}
+            {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#dc2626" }}>{error}</div>}
 
-            <div
-              onDrop={handleDrop}
+            {/* Drop zone */}
+            <div onDrop={handleDrop}
               onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
               onDragLeave={() => setDragging(false)}
               onClick={() => { if (!file) openPicker(); }}
               style={{
-                border: `1.5px dashed ${file ? "#22c55e" : dragging ? ACCENT : "rgba(255,255,255,0.1)"}`,
-                borderRadius: 14, padding: "38px 24px", textAlign: "center",
+                border: `2px dashed ${file ? "#10b981" : dragging ? P : "#e2e8f0"}`,
+                borderRadius: 14, padding: "36px 24px", textAlign: "center",
                 cursor: file ? "default" : "pointer",
-                background: file ? "rgba(34,197,94,0.03)" : dragging ? "rgba(255,106,61,0.05)" : "rgba(255,255,255,0.015)",
+                background: file ? "rgba(16,185,129,0.03)" : dragging ? "rgba(37,99,235,0.03)" : "#fafbfc",
                 transition: "all 0.2s",
-              }}
-            >
+              }}>
               {file ? (
-                <Box display="flex" flexDirection="column" alignItems="center" gap={1.5}>
-                  <Box sx={{ position: "relative", display: "inline-block" }}>
-                    <PictureAsPdfOutlined sx={{ fontSize: 48, color: "#22c55e" }} />
-                    <CheckCircleOutlined sx={{ fontSize: 18, color: "#22c55e", position: "absolute", bottom: -2, right: -6, background: "#0a0a0a", borderRadius: "50%" }} />
-                  </Box>
-                  <Typography fontWeight={700} sx={{ color: "#f5f5f5", fontSize: "0.9rem" }}>{file.name}</Typography>
-                  <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.25)" }}>{(file.size / 1024 / 1024).toFixed(2)} MB</Typography>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                  <div style={{ position: "relative", display: "inline-block" }}>
+                    <FileText size={44} color="#10b981" />
+                    <CheckCircle size={16} color="#10b981" style={{ position: "absolute", bottom: -2, right: -6, background: "#fff", borderRadius: "50%" }} />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", margin: "0 0 3px" }}>{file.name}</p>
+                    <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
                   <button onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                    style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.3)", padding: "4px 14px", borderRadius: 6, cursor: "pointer", fontSize: "0.73rem", fontFamily: "Inter,sans-serif" }}>
+                    style={{ padding: "5px 14px", borderRadius: 7, border: "1.5px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#94a3b8"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; }}>
                     Change file
                   </button>
-                </Box>
+                </div>
               ) : (
-                <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
-                  <Box sx={{
-                    width: 56, height: 56, borderRadius: "14px",
-                    background: "rgba(255,106,61,0.07)", border: "1px solid rgba(255,106,61,0.15)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    transform: dragging ? "translateY(-5px)" : "translateY(0)", transition: "transform 0.2s",
-                  }}>
-                    <CloudUploadOutlined sx={{ fontSize: 26, color: ACCENT }} />
-                  </Box>
-                  <Box>
-                    <Typography fontWeight={700} mb={0.5} sx={{ color: "#f5f5f5", fontSize: "0.9rem" }}>Drag & drop your PDF</Typography>
-                    <Typography sx={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.3)" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: dragging ? "rgba(37,99,235,0.08)" : "#f1f5f9", border: `1px solid ${dragging ? "rgba(37,99,235,0.2)" : "#e2e8f0"}`, display: "flex", alignItems: "center", justifyContent: "center", transform: dragging ? "translateY(-4px)" : "translateY(0)", transition: "all 0.2s" }}>
+                    <Upload size={22} color={dragging ? P : "#94a3b8"} />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", margin: "0 0 4px" }}>Drag & drop your PDF</p>
+                    <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>
                       or{" "}
                       <span onClick={(e) => { e.stopPropagation(); openPicker(); }}
-                        style={{ color: ACCENT, fontWeight: 700, cursor: "pointer" }}>
+                        style={{ color: P, fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}>
                         click to browse
                       </span>
-                    </Typography>
-                  </Box>
-                </Box>
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
 
-            <Box display="flex" gap={1.5} mt={3}>
+            {/* Actions */}
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={handleClose} disabled={uploading}
-                style={{ flex: 1, padding: "11px 0", borderRadius: 9, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "rgba(255,255,255,0.3)", fontWeight: 600, fontSize: "0.85rem", cursor: uploading ? "not-allowed" : "pointer", fontFamily: "Inter,sans-serif" }}>
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 14, cursor: uploading ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+                onMouseEnter={(e) => { if (!uploading) e.currentTarget.style.borderColor = "#94a3b8"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; }}>
                 Cancel
               </button>
-              <button onClick={handleUpload} disabled={!file || uploading}
-                style={{
-                  flex: 2, padding: "11px 0", borderRadius: 9, border: "none",
-                  background: !file || uploading ? "rgba(255,106,61,0.15)" : ACCENT,
-                  color: !file || uploading ? "rgba(255,255,255,0.2)" : "#fff",
-                  fontWeight: 800, fontSize: "0.85rem",
-                  cursor: !file || uploading ? "not-allowed" : "pointer",
-                  fontFamily: "Inter,sans-serif",
-                  boxShadow: file && !uploading ? `0 0 20px rgba(255,106,61,0.25)` : "none",
-                  transition: "all 0.2s",
-                }}>
+              <motion.button whileHover={file && !uploading ? { scale: 1.01, boxShadow: "0 4px 14px rgba(37,99,235,0.3)" } : {}} whileTap={file ? { scale: 0.99 } : {}}
+                onClick={handleUpload} disabled={!file || uploading}
+                style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: (!file || uploading) ? "#f1f5f9" : "linear-gradient(135deg,#2563eb,#7c3aed)", color: (!file || uploading) ? "#94a3b8" : "#fff", fontWeight: 700, fontSize: 14, cursor: (!file || uploading) ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: (file && !uploading) ? "0 2px 8px rgba(37,99,235,0.25)" : "none", transition: "all 0.2s" }}>
                 {uploading ? "Processing..." : "Upload & Index"}
-              </button>
-            </Box>
+              </motion.button>
+            </div>
           </motion.div>
         </motion.div>
       </AnimatePresence>

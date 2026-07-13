@@ -1,124 +1,10 @@
-import React, { useState } from "react";
-import { Box, TextField, Typography, Alert, InputAdornment, IconButton, Link } from "@mui/material";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { useNavigate, Link as RouterLink } from "react-router-dom";
+import { Eye, EyeOff, Check } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const A = "#ff6a3d";
-
-const FEATURES = [
-  { icon: "⚡", title: "Instant embedding", desc: "PDFs vectorized in seconds using ONNX fastembed" },
-  { icon: "🔍", title: "Semantic search", desc: "Cosine similarity retrieval across all your documents" },
-  { icon: "🔒", title: "Ephemeral privacy", desc: "In-memory only — nothing written to disk" },
-];
-
-function FeaturePanel() {
-  return (
-    <Box sx={{
-      flex: 1, minHeight: "100%", position: "relative",
-      background: "rgba(255,106,61,0.03)",
-      borderLeft: "1px solid rgba(255,255,255,0.06)",
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      px: { xs: 4, md: 7 }, py: 6,
-      overflow: "hidden",
-    }}>
-      {/* Background glow */}
-      <Box sx={{
-        position: "absolute", top: "30%", right: "-10%",
-        width: 400, height: 400,
-        background: "radial-gradient(ellipse, rgba(255,106,61,0.08) 0%, transparent 65%)",
-        pointerEvents: "none",
-      }} />
-
-      {/* Logo */}
-      <Box display="flex" alignItems="center" gap={1.5} mb={8}>
-        <Box sx={{
-          width: 32, height: 32, borderRadius: "8px",
-          background: `linear-gradient(135deg, ${A}, #cc4a1f)`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: `0 0 18px rgba(255,106,61,0.4)`, flexShrink: 0,
-        }}>
-          <Box sx={{ width: 11, height: 11, borderRadius: "2.5px", border: "1.5px solid rgba(255,255,255,0.92)", transform: "rotate(45deg)" }} />
-        </Box>
-        <Typography sx={{ fontWeight: 800, fontSize: "1rem", color: "#f5f5f5", fontFamily: "'DM Sans', Inter, sans-serif" }}>
-          Brain<Box component="span" sx={{ color: A }}>Doc</Box>
-        </Typography>
-      </Box>
-
-      {/* Headline */}
-      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
-        <Typography sx={{
-          fontSize: { xs: "2rem", md: "2.8rem" },
-          fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.08,
-          color: "#f5f5f5", mb: 1.5,
-          fontFamily: "'DM Sans', Inter, sans-serif",
-        }}>
-          Your documents,<br />
-          <Box component="span" sx={{ color: A, textShadow: "0 0 40px rgba(255,106,61,0.4)" }}>
-            infinite answers.
-          </Box>
-        </Typography>
-        <Typography sx={{ fontSize: "0.95rem", color: "rgba(255,255,255,0.38)", lineHeight: 1.7, mb: 6, maxWidth: 380 }}>
-          Upload any PDF and ask questions in plain language. BrainDoc retrieves exact answers using retrieval-augmented generation.
-        </Typography>
-      </motion.div>
-
-      {/* Feature list */}
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-        {FEATURES.map((f, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 + i * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <Box display="flex" alignItems="flex-start" gap={2}>
-              <Box sx={{
-                width: 40, height: 40, borderRadius: "11px", flexShrink: 0,
-                background: "rgba(255,106,61,0.08)", border: "1px solid rgba(255,106,61,0.15)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "1.1rem",
-              }}>
-                {f.icon}
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: "0.88rem", fontWeight: 700, color: "#f5f5f5", mb: 0.25 }}>{f.title}</Typography>
-                <Typography sx={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.35)", lineHeight: 1.5 }}>{f.desc}</Typography>
-              </Box>
-            </Box>
-          </motion.div>
-        ))}
-      </Box>
-
-      {/* Floating testimonial */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7, duration: 0.7 }}
-        style={{ marginTop: 48 }}
-      >
-        <Box sx={{
-          p: 2.5, borderRadius: "14px",
-          background: "rgba(22,22,22,0.7)", backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          maxWidth: 360,
-        }}>
-          <Typography sx={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.55)", lineHeight: 1.6, fontStyle: "italic", mb: 1.5 }}>
-            "BrainDoc cut my research time in half. I just upload papers and ask it anything."
-          </Typography>
-          <Box display="flex" alignItems="center" gap={1.25}>
-            <Box sx={{ width: 28, height: 28, borderRadius: "7px", background: `linear-gradient(135deg, ${A}, #cc4a1f)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 800, color: "#fff" }}>R</Box>
-            <Box>
-              <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "#f5f5f5" }}>Research Analyst</Typography>
-              <Typography sx={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.3)" }}>Financial Services</Typography>
-            </Box>
-          </Box>
-        </Box>
-      </motion.div>
-    </Box>
-  );
-}
+const EASE = [0.22, 0.61, 0.36, 1];
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -128,6 +14,26 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 900);
+  const [showWake, setShowWake] = useState(false);
+
+  useEffect(() => {
+    let t;
+    if (loading) t = setTimeout(() => setShowWake(true), 4000);
+    else setShowWake(false);
+    return () => clearTimeout(t);
+  }, [loading]);
+
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth < 900);
+    window.addEventListener("resize", fn);
+    // Force white background — overrides MUI dark theme CssBaseline
+    document.body.style.background = "#ffffff";
+    return () => {
+      window.removeEventListener("resize", fn);
+      document.body.style.background = "";
+    };
+  }, []);
 
   const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
@@ -153,121 +59,271 @@ export default function SignupPage() {
       await signupUser(form.username, form.email, form.password);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.detail || "Signup failed. Please try again.");
+      // Surface the actual backend error message, with fallbacks
+      const msg =
+        err.message?.includes("starting up") || err.message?.includes("timeout")
+          ? "Server is warming up (free tier cold start). Please wait ~30s and try again."
+          : err.response?.data?.detail ||
+            err.response?.data?.message ||
+            err.message ||
+            "Signup failed. Please try again.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  // Shared input style — pure CSS, no MUI interference
+  const inputStyle = (hasErr) => ({
+    display: "block", width: "100%", padding: "13px 16px",
+    borderRadius: 12, border: `1.5px solid ${hasErr ? "#ef4444" : "#e2e8f0"}`,
+    background: "#ffffff", color: "#0f172a",
+    fontSize: 15, fontFamily: "inherit", outline: "none",
+    WebkitAppearance: "none", appearance: "none",
+    boxSizing: "border-box", transition: "border-color 0.2s, box-shadow 0.2s",
+  });
+
+  const FEATURES = [
+    "Zero hallucinations — answers grounded in your PDF",
+    "Sub-100ms semantic retrieval with ONNX FAISS",
+    "Complete privacy — in-memory, nothing stored",
+    "Multi-provider: Groq, Gemini, OpenAI, or local",
+  ];
+
   return (
-    <Box sx={{
-      minHeight: "calc(100vh - 56px)",
-      display: "flex", position: "relative", zIndex: 1,
+    <div style={{
+      minHeight: "100vh", width: "100vw",
+      background: "#ffffff",
+      display: "flex", flexDirection: isMobile ? "column" : "row",
+      overflow: "auto",
     }}>
-      {/* Left — form */}
-      <Box sx={{
-        width: { xs: "100%", md: "50%", lg: "45%" },
+
+      {/* ── Left — form panel ── */}
+      <div style={{
+        width: isMobile ? "100%" : "50%", flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
-        px: { xs: 3, md: 6, lg: 8 }, py: 6,
+        padding: isMobile ? "48px 24px" : "60px 72px",
+        background: "#ffffff",
+        minHeight: isMobile ? "auto" : "100vh",
+        overflowY: "auto",
       }}>
         <motion.div
-          initial={{ opacity: 0, x: -28 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0, x: isMobile ? 0 : -20, y: isMobile ? 20 : 0 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
+          transition={{ duration: 0.6, ease: EASE }}
           style={{ width: "100%", maxWidth: 440 }}
         >
-          {/* Header */}
-          <Box mb={4}>
-            <Typography variant="h4" fontWeight={800} mb={0.75}
-              sx={{ color: "#f5f5f5", letterSpacing: "-0.03em", fontFamily: "'DM Sans', Inter, sans-serif" }}>
-              Create your account
-            </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.35)", fontSize: "0.9rem" }}>
-              Free forever — no credit card required
-            </Typography>
-          </Box>
+          {/* Logo */}
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 36, cursor: "pointer" }}
+            onClick={() => navigate("/")}
+          >
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#2563eb,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(37,99,235,0.3)" }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8L7 12L13 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <span style={{ fontWeight: 800, fontSize: "1rem", color: "#0f172a", letterSpacing: "-0.02em" }}>
+              Brain<span style={{ color: "#2563eb" }}>Doc</span>
+            </span>
+          </div>
 
-          {error && (
-            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
-              <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5", "& .MuiAlert-icon": { color: "#ef4444" } }}>
+          <h1 style={{ fontSize: isMobile ? 26 : 30, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.03em", marginBottom: 6 }}>
+            Create your account
+          </h1>
+          <p style={{ fontSize: 15, color: "#64748b", marginBottom: 28 }}>
+            Free forever — no credit card required
+          </p>
+
+          {/* Error banner */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                key="err"
+                initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "12px 16px", marginBottom: 20, fontSize: 14, color: "#dc2626" }}
+              >
                 {error}
-              </Alert>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
+            {showWake && (
+              <motion.div
+                key="wake"
+                initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                style={{ background: "#fffbeb", border: "1px solid #fed7aa", borderRadius: 12, padding: "12px 16px", marginBottom: 20, fontSize: 14, color: "#b45309", display: "flex", alignItems: "flex-start", gap: 10 }}
+              >
+                <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.6, repeat: Infinity }}
+                  style={{ width: 8, height: 8, borderRadius: "50%", background: "#f59e0b", flexShrink: 0, display: "inline-block", marginTop: 3 }} />
+                Server warming up (free tier cold start). Takes up to 30s on first request…
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-            {[
-              { name: "username", label: "Username", type: "text", autoFocus: true },
-              { name: "email",    label: "Email address", type: "email" },
-            ].map((f) => (
-              <TextField
-                key={f.name}
-                label={f.label} name={f.name} type={f.type}
-                value={form[f.name]} onChange={handleChange}
-                fullWidth required margin="normal"
-                autoFocus={f.autoFocus}
-                error={!!fieldErrors[f.name]} helperText={fieldErrors[f.name]}
+          <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column" }}>
+
+            {/* Username */}
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 7 }}>Username</label>
+              <input
+                name="username" type="text" value={form.username}
+                onChange={handleChange} required autoFocus placeholder="johndoe"
+                style={inputStyle(!!fieldErrors.username)}
+                onFocus={(e) => { e.target.style.borderColor = "#2563eb"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.1)"; }}
+                onBlur={(e) => { e.target.style.borderColor = fieldErrors.username ? "#ef4444" : "#e2e8f0"; e.target.style.boxShadow = "none"; }}
               />
-            ))}
+              {fieldErrors.username && <p style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}>{fieldErrors.username}</p>}
+            </div>
 
-            <TextField
-              label="Password" name="password"
-              type={showPw ? "text" : "password"}
-              value={form.password} onChange={handleChange}
-              fullWidth required margin="normal"
-              error={!!fieldErrors.password} helperText={fieldErrors.password}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setShowPw((s) => !s)} edge="end" size="small" sx={{ color: "rgba(255,255,255,0.25)" }}>
-                      {showPw ? <VisibilityOff sx={{ fontSize: 16 }} /> : <Visibility sx={{ fontSize: 16 }} />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <TextField
-              label="Confirm password" name="confirmPassword"
-              type={showPw ? "text" : "password"}
-              value={form.confirmPassword} onChange={handleChange}
-              fullWidth required margin="normal"
-              error={!!fieldErrors.confirmPassword} helperText={fieldErrors.confirmPassword}
-            />
+            {/* Email */}
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 7 }}>Email address</label>
+              <input
+                name="email" type="email" value={form.email}
+                onChange={handleChange} required placeholder="you@example.com"
+                style={inputStyle(!!fieldErrors.email)}
+                onFocus={(e) => { e.target.style.borderColor = "#2563eb"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.1)"; }}
+                onBlur={(e) => { e.target.style.borderColor = fieldErrors.email ? "#ef4444" : "#e2e8f0"; e.target.style.boxShadow = "none"; }}
+              />
+              {fieldErrors.email && <p style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}>{fieldErrors.email}</p>}
+            </div>
 
+            {/* Password */}
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 7 }}>Password</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  name="password" type={showPw ? "text" : "password"}
+                  value={form.password} onChange={handleChange} required placeholder="Min. 6 characters"
+                  style={{ ...inputStyle(!!fieldErrors.password), paddingRight: 48 }}
+                  onFocus={(e) => { e.target.style.borderColor = "#2563eb"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.1)"; }}
+                  onBlur={(e) => { e.target.style.borderColor = fieldErrors.password ? "#ef4444" : "#e2e8f0"; e.target.style.boxShadow = "none"; }}
+                />
+                <button type="button" onClick={() => setShowPw(s => !s)}
+                  style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, display: "flex", alignItems: "center" }}>
+                  {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+              {fieldErrors.password && <p style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}>{fieldErrors.password}</p>}
+            </div>
+
+            {/* Confirm password */}
+            <div style={{ marginBottom: 28 }}>
+              <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 7 }}>Confirm password</label>
+              <input
+                name="confirmPassword" type={showPw ? "text" : "password"}
+                value={form.confirmPassword} onChange={handleChange} required placeholder="Re-enter password"
+                style={inputStyle(!!fieldErrors.confirmPassword)}
+                onFocus={(e) => { e.target.style.borderColor = "#2563eb"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.1)"; }}
+                onBlur={(e) => { e.target.style.borderColor = fieldErrors.confirmPassword ? "#ef4444" : "#e2e8f0"; e.target.style.boxShadow = "none"; }}
+              />
+              {fieldErrors.confirmPassword && <p style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}>{fieldErrors.confirmPassword}</p>}
+            </div>
+
+            {/* Submit */}
             <motion.button
-              type="submit"
-              disabled={loading}
-              whileHover={!loading ? { scale: 1.02, boxShadow: "0 0 32px rgba(255,106,61,0.45)" } : {}}
-              whileTap={!loading ? { scale: 0.98 } : {}}
+              type="submit" disabled={loading}
+              whileHover={!loading ? { scale: 1.015, boxShadow: "0 8px 28px rgba(37,99,235,0.4)" } : {}}
+              whileTap={!loading ? { scale: 0.985 } : {}}
               style={{
-                width: "100%", marginTop: 12, padding: "14px 0",
-                borderRadius: 10, border: "none",
-                background: loading ? "rgba(255,106,61,0.25)" : A,
-                color: loading ? "rgba(255,255,255,0.4)" : "#fff",
-                fontWeight: 800, fontSize: "0.95rem",
+                width: "100%", padding: "15px 0", borderRadius: 12, border: "none",
+                background: loading
+                  ? "linear-gradient(135deg, rgba(37,99,235,0.5), rgba(124,58,237,0.5))"
+                  : "linear-gradient(135deg, #2563eb, #7c3aed)",
+                color: "#fff", fontWeight: 700, fontSize: 16,
                 cursor: loading ? "not-allowed" : "pointer",
-                fontFamily: "'DM Sans', Inter, sans-serif",
-                boxShadow: loading ? "none" : "0 0 24px rgba(255,106,61,0.25)",
-                transition: "box-shadow 0.2s",
+                fontFamily: "inherit",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                boxShadow: loading ? "none" : "0 4px 20px rgba(37,99,235,0.35)",
+                transition: "box-shadow 0.25s",
               }}
             >
-              {loading ? "Creating account..." : "Create Account →"}
+              {loading ? (
+                <>
+                  <motion.span
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 0.85, repeat: Infinity, ease: "linear" }}
+                    style={{ display: "inline-block", width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%" }}
+                  />
+                  Creating account…
+                </>
+              ) : "Create Account →"}
             </motion.button>
+          </form>
 
-            <Typography variant="body2" textAlign="center" mt={2.5} sx={{ color: "rgba(255,255,255,0.28)" }}>
-              Already have an account?{" "}
-              <Link component={RouterLink} to="/login" sx={{ color: A, fontWeight: 700, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
-                Sign in
-              </Link>
-            </Typography>
-          </Box>
+          <p style={{ textAlign: "center", marginTop: 24, fontSize: 14, color: "#64748b" }}>
+            Already have an account?{" "}
+            <Link to="/login" style={{ color: "#2563eb", fontWeight: 700, textDecoration: "none" }}>
+              Sign in
+            </Link>
+          </p>
         </motion.div>
-      </Box>
+      </div>
 
-      {/* Right — feature panel (hidden on mobile) */}
-      <Box sx={{ display: { xs: "none", md: "flex" }, flex: 1 }}>
-        <FeaturePanel />
-      </Box>
-    </Box>
+      {/* ── Right — decorative panel (desktop only) ── */}
+      {!isMobile && (
+        <div style={{
+          flex: 1, background: "linear-gradient(145deg, #f0f7ff 0%, #eff6ff 40%, #f5f3ff 100%)",
+          display: "flex", flexDirection: "column", justifyContent: "center",
+          padding: "80px 72px", position: "relative", overflow: "hidden",
+        }}>
+          <div style={{ position: "absolute", top: -80, right: -80, width: 360, height: 360, background: "radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", bottom: -60, left: -60, width: 300, height: 300, background: "radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
+
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <h3 style={{ fontSize: "clamp(24px,2.5vw,34px)", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.025em", marginBottom: 12, lineHeight: 1.2 }}>
+              Everything you need<br />to unlock your PDFs
+            </h3>
+            <p style={{ fontSize: 16, color: "#64748b", marginBottom: 40, lineHeight: 1.75, maxWidth: 380 }}>
+              Join 2,400+ researchers, analysts, and professionals using BrainDoc every day.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 48 }}>
+              {FEATURES.map((f, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: 16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.25 + i * 0.1, duration: 0.5, ease: EASE }}
+                  style={{ display: "flex", alignItems: "flex-start", gap: 12 }}
+                >
+                  <div style={{ width: 22, height: 22, borderRadius: 7, background: "rgba(37,99,235,0.1)", border: "1px solid rgba(37,99,235,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                    <Check size={11} color="#2563eb" />
+                  </div>
+                  <span style={{ fontSize: 15, color: "#334155", lineHeight: 1.65 }}>{f}</span>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Testimonial card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.85, duration: 0.6, ease: EASE }}
+              style={{ background: "#fff", borderRadius: 20, padding: "24px 28px", boxShadow: "0 4px 24px rgba(0,0,0,0.08)", border: "1px solid #f1f5f9", maxWidth: 400 }}
+            >
+              <div style={{ display: "flex", gap: 3, marginBottom: 12 }}>
+                {[1,2,3,4,5].map(s => (
+                  <svg key={s} width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                ))}
+              </div>
+              <p style={{ fontSize: 14, color: "#334155", lineHeight: 1.65, marginBottom: 18, fontStyle: "italic" }}>
+                "BrainDoc is the most useful AI tool I've added to my research workflow. The accuracy is genuinely impressive."
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>S</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Sarah Chen</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8" }}>Research Scientist, BioLab</div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
